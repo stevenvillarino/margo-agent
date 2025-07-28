@@ -1,0 +1,14 @@
+{
+  "name": "VP",
+  "role": "Design Leadership",
+  "focus_areas": [
+    "visual design",
+    "performance",
+    "content"
+  ],
+  "strict_areas": [],
+  "lenient_areas": [],
+  "communication_style": "detailed",
+  "typical_context_types": [],
+  "preferred_output_format": "structured"
+}

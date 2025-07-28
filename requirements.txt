@@ -1,0 +1,15 @@
+langchain
+langchain-core
+langchain-community
+langchain-openai
+python-dotenv
+pydantic
+streamlit
+pillow
+requests
+PyPDF2
+atlassian-python-api
+beautifulsoup4
+lxml
+plotly
+pandas
