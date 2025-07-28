@@ -125,13 +125,13 @@ def main():
     st.markdown("Upload your design files and get AI-powered feedback!")
     
     # Check AI provider configuration
-    use_local_ai = st.sidebar.checkbox(
-        "🆓 Use Free Local AI (Ollama)",
-        help="Use free local AI instead of OpenAI. No API key required!"
+    use_free_ai = st.sidebar.checkbox(
+        "🆓 Use Free Cloud AI",
+        help="Use free cloud AI providers (Groq, Hugging Face) instead of OpenAI. No API key required for some providers!"
     )
     
-    if not use_local_ai and not os.getenv("OPENAI_API_KEY"):
-        st.warning("⚠️ OpenAI API key not configured. Enable 'Use Free Local AI' in the sidebar for a free alternative.")
+    if not use_free_ai and not os.getenv("OPENAI_API_KEY"):
+        st.warning("⚠️ OpenAI API key not configured. Enable 'Use Free Cloud AI' in the sidebar for free alternatives.")
         
         with st.expander("🔧 Setup Options"):
             st.markdown("""
@@ -139,26 +139,32 @@ def main():
             - Get $5 free credits: https://platform.openai.com/
             - Add your API key to the .env file
             
-            **Option 2: Free Local AI (Ollama)**
-            - ✅ Completely free
-            - ✅ Runs locally (private)
-            - ✅ No API keys needed
-            - Check 'Use Free Local AI' in sidebar
+            **Option 2: Free Cloud AI (Groq, Hugging Face, etc.)**
+            - ✅ Many completely free options
+            - ✅ Fast inference (especially Groq)
+            - ✅ No local installation needed
+            - Check 'Use Free Cloud AI' in sidebar
             """)
         
-        if not use_local_ai:
+        if not use_free_ai:
             st.stop()
     
     # Initialize the appropriate agent
-    if use_local_ai:
-        st.sidebar.success("🆓 Using Free Local AI")
-        if not local_agent._check_ollama_running():
-            st.sidebar.error("Ollama not running. See setup instructions below.")
-            with st.sidebar.expander("Setup Ollama"):
-                st.code("curl -fsSL https://ollama.ai/install.sh | sh")
-                st.code("ollama serve")
-                st.code("ollama pull llama3.1:8b")
-        agent = None  # We'll use local_agent directly
+    if use_free_ai:
+        from agents.cloud_reviewer import cloud_agent
+        if cloud_agent.is_available():
+            st.sidebar.success("🆓 Using Free Cloud AI")
+            st.sidebar.info(f"Provider: {cloud_agent.provider}")
+        else:
+            st.sidebar.error("No free cloud AI providers configured.")
+            with st.sidebar.expander("Setup Free Cloud AI"):
+                setup_info = cloud_agent.get_setup_instructions()
+                st.markdown("**Recommended: Groq (Free & Fast)**")
+                st.markdown("1. Go to https://console.groq.com/")
+                st.markdown("2. Sign up and get your API key")
+                st.markdown("3. Add `GROQ_API_KEY=your_key` to your .env file")
+                st.markdown("4. Restart the app")
+        agent = None  # We'll use cloud_agent directly
     else:
         st.sidebar.success("🔑 Using OpenAI API")
         agent = DesignReviewAgent()
@@ -267,15 +273,15 @@ def main():
     
     # Single content area based on selection
     if input_method == "📁 Upload File":
-        show_file_upload_interface(use_local_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
+        show_file_upload_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
     
     elif input_method == "🎨 Figma URL":
-        show_figma_interface(use_local_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
+        show_figma_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
     
     elif input_method == "📚 Confluence Page":
-        show_confluence_interface(use_local_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
+        show_confluence_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
 
-def show_file_upload_interface(use_local_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
+def show_file_upload_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
     """Simplified file upload interface."""
     col1, col2 = st.columns([1, 1])
     
@@ -302,22 +308,27 @@ def show_file_upload_interface(use_local_ai, agent, evaluation_mode, review_type
             if st.button("🔍 Analyze Design", type="primary", key="file_analyze"):
                 with st.spinner("Analyzing design..."):
                     try:
-                        if use_local_ai:
-                            # Use local AI
-                            if uploaded_file.type.startswith('image'):
-                                image = Image.open(uploaded_file)
-                                review_result = local_agent.review_design_local(
-                                    image=image,
-                                    review_type=review_type,
-                                    detail_level=detail_level
-                                )
+                        if use_free_ai:
+                            # Use cloud AI
+                            from agents.cloud_reviewer import cloud_agent
+                            if cloud_agent.is_available():
+                                if uploaded_file.type.startswith('image'):
+                                    # For images with cloud AI, we need a text description
+                                    review_result = {
+                                        'error': 'Image analysis requires OpenAI. Please provide a text description of the image instead.',
+                                        'suggestion': 'Switch to "📝 Text Description" and describe your image in detail.'
+                                    }
+                                else:
+                                    # For PDFs with cloud AI, extract text content
+                                    review_result = {
+                                        'error': 'PDF analysis requires OpenAI. Please extract the text content and use "📝 Text Description" instead.',
+                                        'suggestion': 'Copy the text from your PDF and use the text description option.'
+                                    }
                             else:
-                                # For PDFs with local AI, extract text content
-                                review_result = local_agent.review_design_local(
-                                    text_content=f"PDF file: {uploaded_file.name}",
-                                    review_type=review_type,
-                                    detail_level=detail_level
-                                )
+                                review_result = {
+                                    'error': 'No cloud AI provider configured.',
+                                    'setup_instructions': cloud_agent.get_setup_instructions()
+                                }
                         else:
                             # Use OpenAI agent
                             if evaluation_mode == "Roku TV Design Review":
@@ -347,7 +358,7 @@ def show_file_upload_interface(use_local_ai, agent, evaluation_mode, review_type
             st.info("Upload a design file to get started!")
 
 
-def show_figma_interface(use_local_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
+def show_figma_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
     """Simplified Figma interface."""
     if not settings.is_figma_configured():
         st.warning("⚠️ Figma integration requires configuration. Add your FIGMA_ACCESS_TOKEN to the .env file.")
@@ -388,8 +399,8 @@ def show_figma_interface(use_local_ai, agent, evaluation_mode, review_type, deta
                     try:
                         node_ids = [nid.strip() for nid in node_ids_input.split(',') if nid.strip()] if node_ids_input else None
                         
-                        if use_local_ai:
-                            st.warning("Local AI doesn't support Figma integration yet. Please use OpenAI or upload an image export.")
+                        if use_free_ai:
+                            st.warning("Cloud AI doesn't support Figma integration yet. Please use OpenAI or export images from Figma.")
                             return
                         
                         if evaluation_mode == "Roku TV Design Review":
@@ -418,7 +429,7 @@ def show_figma_interface(use_local_ai, agent, evaluation_mode, review_type, deta
             st.info("Enter a Figma URL or file key to get started!")
 
 
-def show_confluence_interface(use_local_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
+def show_confluence_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
     """Simplified Confluence interface."""
     if not settings.is_confluence_configured():
         st.warning("⚠️ Confluence integration requires configuration.")
@@ -459,8 +470,8 @@ CONFLUENCE_API_KEY=your_api_key_here""")
             if st.button("🔍 Analyze Confluence Pages", type="primary", key="confluence_analyze"):
                 with st.spinner("Loading and analyzing Confluence pages..."):
                     try:
-                        if use_local_ai:
-                            st.warning("Local AI doesn't support Confluence integration yet. Please use OpenAI or copy content manually.")
+                        if use_free_ai:
+                            st.warning("Cloud AI doesn't support Confluence integration yet. Please use OpenAI or copy content manually.")
                             return
                         
                         if evaluation_mode == "Roku TV Design Review":

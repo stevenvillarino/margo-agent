@@ -149,6 +149,34 @@ Key packages used in this project:
 - `beautifulsoup4` - HTML parsing for document processing
 - `pillow` - Image processing
 
+## Deployment
+
+### Local Development
+```bash
+streamlit run app.py
+```
+
+### Vercel Deployment
+This project includes a Flask-based web interface for deployment on Vercel:
+
+1. **Deploy to Vercel:**
+   ```bash
+   vercel --prod
+   ```
+
+2. **Set Environment Variables in Vercel:**
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `FIGMA_ACCESS_TOKEN`: Your Figma access token (optional)
+   - `CONFLUENCE_URL`: Your Confluence URL (optional)
+   - `CONFLUENCE_USERNAME`: Your Confluence username (optional)
+   - `CONFLUENCE_API_KEY`: Your Confluence API key (optional)
+
+3. **Access Options:**
+   - **Streamlit Interface** (Local): Full-featured interface with chat, VP preferences, etc.
+   - **Flask Interface** (Vercel): Simplified web interface optimized for serverless deployment
+
+The Flask interface (`/api/index.py`) provides a streamlined version of the design review functionality that works well with Vercel's serverless architecture.
+
 ## Contributing
 
 1. Fork the repository
@@ -160,14 +188,19 @@ Key packages used in this project:
 
 ### Common Issues
 
-1. **Import Error for ConversationBufferMemory**
+1. **Vercel 404 NOT_FOUND Error**
+   - Ensure `vercel.json` is properly configured
+   - Check that environment variables are set in Vercel dashboard
+   - Verify the Flask app structure in `/api/index.py`
+
+2. **Import Error for ConversationBufferMemory**
    - This has been fixed by importing from `langchain.memory` instead of `langchain_core.memory`
 
-2. **Figma Access Token Invalid**
+3. **Figma Access Token Invalid**
    - Ensure your token has the correct permissions
    - Check that the token hasn't expired
 
-3. **Confluence Connection Issues**
+4. **Confluence Connection Issues**
    - Verify your Confluence URL format (should include https://)
    - Ensure your API token has proper permissions
    - Check that your username is correct
