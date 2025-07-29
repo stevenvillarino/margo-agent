@@ -6,6 +6,7 @@ from agents.design_reviewer import DesignReviewAgent
 from agents.document_loaders import document_loader_manager
 from agents.vp_preferences import vp_preference_manager
 from agents.local_reviewer import local_agent
+from agents.ai_hub_cloud_reviewer import get_ai_hub_reviewer, is_ai_hub_available
 from config.settings import settings
 
 # Load environment variables
@@ -124,33 +125,80 @@ def main():
     st.title("🎨 Margo - AI Design Review Assistant")
     st.markdown("Upload your design files and get AI-powered feedback!")
     
-    # Check AI provider configuration
-    use_free_ai = st.sidebar.checkbox(
-        "🆓 Use Free Cloud AI",
-        help="Use free cloud AI providers (Groq, Hugging Face) instead of OpenAI. No API key required for some providers!"
+    # AI Source Selection
+    st.sidebar.header("🤖 AI Source")
+    
+    # Check what AI sources are available
+    ai_hub_available = is_ai_hub_available()
+    openai_available = bool(os.getenv("OPENAI_API_KEY"))
+    
+    ai_source_options = []
+    if ai_hub_available:
+        ai_source_options.append("🏢 Roku AI Hub (Enterprise)")
+    if openai_available:
+        ai_source_options.append("🔑 OpenAI API")
+    ai_source_options.append("🆓 Free Cloud AI")
+    ai_source_options.append("💻 Local AI (Ollama)")
+    
+    ai_source = st.sidebar.selectbox(
+        "Select AI Source",
+        ai_source_options,
+        help="Choose your preferred AI source for design analysis"
     )
     
-    if not use_free_ai and not os.getenv("OPENAI_API_KEY"):
-        st.warning("⚠️ OpenAI API key not configured. Enable 'Use Free Cloud AI' in the sidebar for free alternatives.")
-        
-        with st.expander("🔧 Setup Options"):
-            st.markdown("""
-            **Option 1: OpenAI (Recommended for best quality)**
-            - Get $5 free credits: https://platform.openai.com/
-            - Add your API key to the .env file
+    # Handle AI Hub selection
+    if ai_source == "🏢 Roku AI Hub (Enterprise)":
+        if ai_hub_available:
+            hub_reviewer = get_ai_hub_reviewer()
+            status = hub_reviewer.get_status()
+            st.sidebar.success("✅ AI Hub Connected")
+            st.sidebar.info(f"Models: {status.get('models_count', 0)}")
+            st.sidebar.info(f"Assistants: {status.get('assistants_count', 0)}")
             
-            **Option 2: Free Cloud AI (Groq, Hugging Face, etc.)**
-            - ✅ Many completely free options
-            - ✅ Fast inference (especially Groq)
-            - ✅ No local installation needed
-            - Check 'Use Free Cloud AI' in sidebar
-            """)
-        
-        if not use_free_ai:
-            st.stop()
+            # Model selection for AI Hub
+            available_models = hub_reviewer.get_available_models()
+            if available_models:
+                model_options = [f"{m['provider']} - {m['model']}" for m in available_models]
+                selected_model = st.sidebar.selectbox(
+                    "AI Hub Model", 
+                    ["Default"] + model_options,
+                    help="Choose specific AI model or use default"
+                )
+            else:
+                selected_model = "Default"
+                
+            # Assistant selection for AI Hub
+            available_assistants = hub_reviewer.get_available_assistants()
+            if available_assistants:
+                assistant_options = [f"{a['display_name']} (ID: {a['id']})" for a in available_assistants]
+                selected_assistant = st.sidebar.selectbox(
+                    "AI Hub Assistant",
+                    ["Default"] + assistant_options,
+                    help="Choose specific assistant or use default"
+                )
+            else:
+                selected_assistant = "Default"
+                
+        else:
+            st.sidebar.error("❌ AI Hub Not Available")
+            st.sidebar.info("Check your AI_HUB_TOKEN configuration")
+            ai_source = "🆓 Free Cloud AI"  # Fallback
     
-    # Initialize the appropriate agent
-    if use_free_ai:
+    # Handle other AI sources
+    elif ai_source == "🔑 OpenAI API":
+        if not openai_available:
+            st.warning("⚠️ OpenAI API key not configured.")
+            with st.expander("🔧 OpenAI Setup"):
+                st.markdown("""
+                **OpenAI Setup (Recommended for best quality)**
+                - Get $5 free credits: https://platform.openai.com/
+                - Add your API key to the .env file: `OPENAI_API_KEY=your_key`
+                """)
+            st.stop()
+        else:
+            st.sidebar.success("🔑 Using OpenAI API")
+    
+    elif ai_source == "🆓 Free Cloud AI":
         from agents.cloud_reviewer import cloud_agent
         if cloud_agent.is_available():
             st.sidebar.success("🆓 Using Free Cloud AI")
@@ -158,16 +206,33 @@ def main():
         else:
             st.sidebar.error("No free cloud AI providers configured.")
             with st.sidebar.expander("Setup Free Cloud AI"):
-                setup_info = cloud_agent.get_setup_instructions()
                 st.markdown("**Recommended: Groq (Free & Fast)**")
                 st.markdown("1. Go to https://console.groq.com/")
                 st.markdown("2. Sign up and get your API key")
                 st.markdown("3. Add `GROQ_API_KEY=your_key` to your .env file")
                 st.markdown("4. Restart the app")
-        agent = None  # We'll use cloud_agent directly
-    else:
-        st.sidebar.success("🔑 Using OpenAI API")
+            st.stop()
+    
+    elif ai_source == "💻 Local AI (Ollama)":
+        st.sidebar.info("🏠 Using Local Ollama")
+        if not local_agent.is_available():
+            st.sidebar.warning("Ollama not detected")
+            with st.sidebar.expander("Setup Ollama"):
+                st.markdown("**Install Ollama:**")
+                st.code("curl -fsSL https://ollama.ai/install.sh | sh")
+                st.markdown("**Start and Download Model:**")
+                st.code("ollama serve")
+                st.code("ollama pull llava")
+        else:
+            st.sidebar.success("✅ Ollama Available")
+    
+    # Initialize the appropriate agent
+    if ai_source == "🏢 Roku AI Hub (Enterprise)" and ai_hub_available:
+        agent = None  # We'll use hub_reviewer directly
+    elif ai_source == "🔑 OpenAI API":
         agent = DesignReviewAgent()
+    else:
+        agent = None  # Will be handled by specific agent implementations
     
     # Sidebar for configuration
     with st.sidebar:
@@ -273,15 +338,34 @@ def main():
     
     # Single content area based on selection
     if input_method == "📁 Upload File":
-        show_file_upload_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
+        # Pass AI Hub settings if using AI Hub
+        ai_hub_settings = {}
+        if ai_source == "🏢 Roku AI Hub (Enterprise)" and ai_hub_available:
+            ai_hub_settings = {
+                "selected_model": selected_model if 'selected_model' in locals() else "Default",
+                "selected_assistant": selected_assistant if 'selected_assistant' in locals() else "Default"
+            }
+        show_file_upload_interface(ai_source, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading, ai_hub_settings)
     
     elif input_method == "🎨 Figma URL":
-        show_figma_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
+        ai_hub_settings = {}
+        if ai_source == "🏢 Roku AI Hub (Enterprise)" and ai_hub_available:
+            ai_hub_settings = {
+                "selected_model": selected_model if 'selected_model' in locals() else "Default",
+                "selected_assistant": selected_assistant if 'selected_assistant' in locals() else "Default"
+            }
+        show_figma_interface(ai_source, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading, ai_hub_settings)
     
     elif input_method == "📚 Confluence Page":
-        show_confluence_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading)
+        ai_hub_settings = {}
+        if ai_source == "🏢 Roku AI Hub (Enterprise)" and ai_hub_available:
+            ai_hub_settings = {
+                "selected_model": selected_model if 'selected_model' in locals() else "Default",
+                "selected_assistant": selected_assistant if 'selected_assistant' in locals() else "Default"
+            }
+        show_confluence_interface(ai_source, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading, ai_hub_settings)
 
-def show_file_upload_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
+def show_file_upload_interface(ai_source, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading, ai_hub_settings=None):
     """Simplified file upload interface."""
     col1, col2 = st.columns([1, 1])
     
@@ -308,20 +392,56 @@ def show_file_upload_interface(use_free_ai, agent, evaluation_mode, review_type,
             if st.button("🔍 Analyze Design", type="primary", key="file_analyze"):
                 with st.spinner("Analyzing design..."):
                     try:
-                        if use_free_ai:
+                        if ai_source == "🏢 Roku AI Hub (Enterprise)":
+                            # Use AI Hub
+                            hub_reviewer = get_ai_hub_reviewer()
+                            
+                            # Parse model selection
+                            model_provider = None
+                            model_name = None
+                            selected_model = ai_hub_settings.get("selected_model", "Default") if ai_hub_settings else "Default"
+                            if selected_model != "Default" and " - " in selected_model:
+                                model_provider, model_name = selected_model.split(" - ", 1)
+                            
+                            # Parse assistant selection
+                            assistant_id = None
+                            selected_assistant = ai_hub_settings.get("selected_assistant", "Default") if ai_hub_settings else "Default"
+                            if selected_assistant != "Default" and "(ID: " in selected_assistant:
+                                assistant_id = int(selected_assistant.split("(ID: ")[1].split(")")[0])
+                            
+                            if evaluation_mode == "Roku TV Design Review":
+                                review_result = hub_reviewer.roku_design_review(
+                                    uploaded_file,
+                                    evaluation_criteria=roku_focus_areas if roku_focus_areas else [],
+                                    model_provider=model_provider,
+                                    model_name=model_name,
+                                    assistant_id=assistant_id
+                                )
+                            else:
+                                review_result = hub_reviewer.review_design(
+                                    uploaded_file,
+                                    review_type=review_type,
+                                    detail_level=detail_level,
+                                    include_suggestions=include_suggestions,
+                                    model_provider=model_provider,
+                                    model_name=model_name,
+                                    assistant_id=assistant_id
+                                )
+                        
+                        elif ai_source == "🆓 Free Cloud AI":
                             # Use cloud AI
                             from agents.cloud_reviewer import cloud_agent
                             if cloud_agent.is_available():
                                 if uploaded_file.type.startswith('image'):
                                     # For images with cloud AI, we need a text description
                                     review_result = {
-                                        'error': 'Image analysis requires OpenAI. Please provide a text description of the image instead.',
+                                        'error': 'Image analysis requires OpenAI or AI Hub. Please provide a text description of the image instead.',
                                         'suggestion': 'Switch to "📝 Text Description" and describe your image in detail.'
                                     }
                                 else:
                                     # For PDFs with cloud AI, extract text content
                                     review_result = {
-                                        'error': 'PDF analysis requires OpenAI. Please extract the text content and use "📝 Text Description" instead.',
+                                        'error': 'PDF analysis requires OpenAI or AI Hub. Please extract the text content and use "📝 Text Description" instead.',
                                         'suggestion': 'Copy the text from your PDF and use the text description option.'
                                     }
                             else:
@@ -329,6 +449,16 @@ def show_file_upload_interface(use_free_ai, agent, evaluation_mode, review_type,
                                     'error': 'No cloud AI provider configured.',
                                     'setup_instructions': cloud_agent.get_setup_instructions()
                                 }
+                        
+                        elif ai_source == "💻 Local AI (Ollama)":
+                            # Use local Ollama
+                            review_result = local_agent.review_design_with_local_ai(
+                                uploaded_file,
+                                review_type=review_type,
+                                detail_level=detail_level,
+                                include_suggestions=include_suggestions
+                            )
+                        
                         else:
                             # Use OpenAI agent
                             if evaluation_mode == "Roku TV Design Review":
@@ -358,7 +488,7 @@ def show_file_upload_interface(use_free_ai, agent, evaluation_mode, review_type,
             st.info("Upload a design file to get started!")
 
 
-def show_figma_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
+def show_figma_interface(ai_source, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading, ai_hub_settings=None):
     """Simplified Figma interface."""
     if not settings.is_figma_configured():
         st.warning("⚠️ Figma integration requires configuration. Add your FIGMA_ACCESS_TOKEN to the .env file.")
@@ -399,8 +529,8 @@ def show_figma_interface(use_free_ai, agent, evaluation_mode, review_type, detai
                     try:
                         node_ids = [nid.strip() for nid in node_ids_input.split(',') if nid.strip()] if node_ids_input else None
                         
-                        if use_free_ai:
-                            st.warning("Cloud AI doesn't support Figma integration yet. Please use OpenAI or export images from Figma.")
+                        if ai_source in ["🆓 Free Cloud AI", "💻 Local AI (Ollama)"]:
+                            st.warning("Figma integration is only available with OpenAI or AI Hub. Please use file upload or export images from Figma.")
                             return
                         
                         if evaluation_mode == "Roku TV Design Review":
@@ -429,7 +559,7 @@ def show_figma_interface(use_free_ai, agent, evaluation_mode, review_type, detai
             st.info("Enter a Figma URL or file key to get started!")
 
 
-def show_confluence_interface(use_free_ai, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading):
+def show_confluence_interface(ai_source, agent, evaluation_mode, review_type, detail_level, include_suggestions, roku_context, roku_focus_areas, include_grading, ai_hub_settings=None):
     """Simplified Confluence interface."""
     if not settings.is_confluence_configured():
         st.warning("⚠️ Confluence integration requires configuration.")
@@ -470,8 +600,8 @@ CONFLUENCE_API_KEY=your_api_key_here""")
             if st.button("🔍 Analyze Confluence Pages", type="primary", key="confluence_analyze"):
                 with st.spinner("Loading and analyzing Confluence pages..."):
                     try:
-                        if use_free_ai:
-                            st.warning("Cloud AI doesn't support Confluence integration yet. Please use OpenAI or copy content manually.")
+                        if ai_source in ["🆓 Free Cloud AI", "💻 Local AI (Ollama)"]:
+                            st.warning("Confluence integration is only available with OpenAI or AI Hub. Please copy content manually.")
                             return
                         
                         if evaluation_mode == "Roku TV Design Review":

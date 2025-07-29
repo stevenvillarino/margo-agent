@@ -2,6 +2,170 @@
 
 A LangChain-powered AI agent for analyzing and reviewing design files, mockups, and design documents with support for multiple sources including local files, Figma, and Confluence.
 
+## Architecture Overview
+
+```mermaid
+graph TB
+    %% User Input Layer
+    subgraph "User Interface (Streamlit)"
+        UI[Streamlit Web App]
+        FileUpload[📁 File Upload]
+        FigmaInput[🎨 Figma URL]
+        ConfluenceInput[📚 Confluence Pages]
+        ChatInterface[💬 Interactive Chat]
+    end
+
+    %% AI Source Selection
+    subgraph "AI Source Selection"
+        AIHub[🏢 Roku AI Hub<br/>Enterprise]
+        OpenAI[🔑 OpenAI API<br/>Premium]
+        CloudAI[🆓 Free Cloud AI<br/>Groq/Together/HF]
+        LocalAI[💻 Local AI<br/>Ollama]
+    end
+
+    %% Core Agent System
+    subgraph "Core Agent System"
+        MainAgent[Design Review Agent<br/>Primary Orchestrator]
+        Memory[Conversation Memory<br/>Chat History]
+        Router[Agent Router<br/>Source Selection]
+    end
+
+    %% Specialized Agents
+    subgraph "Specialized AI Agents"
+        HubAgent[AI Hub Reviewer<br/>Enterprise Models]
+        CloudAgent[Cloud Reviewer<br/>Free/Low-cost APIs]
+        LocalAgent[Local Reviewer<br/>Ollama Models]
+        OpenAIAgent[OpenAI Agent<br/>GPT-4 Vision]
+    end
+
+    %% Content Processing Pipeline
+    subgraph "Content Processing"
+        DocLoader[Document Loaders<br/>Multi-source Support]
+        ImageProcessor[Image Processor<br/>Vision Analysis]
+        PDFProcessor[PDF Processor<br/>Text Extraction]
+        FigmaConnector[Figma API<br/>Design Files]
+        ConfluenceConnector[Confluence API<br/>Documentation]
+    end
+
+    %% Evaluation System
+    subgraph "Evaluation System"
+        StandardReview[Standard Design Review<br/>General/UI/UX/Accessibility]
+        RokuReview[Roku TV Design Review<br/>10-foot UI/Remote Navigation]
+        CustomRules[Custom Rules Engine<br/>User-defined Requirements]
+    end
+
+    %% VP Preferences & Learning
+    subgraph "VP Preferences & Learning System"
+        VPProfile[VP Profile<br/>Personal Preferences]
+        CustomRequirements[Custom Requirements<br/>Design Rules]
+        EvalMemory[Evaluation Memory<br/>Historical Data]
+        LearningEngine[Learning Engine<br/>Pattern Analysis]
+        FeedbackLoop[Feedback Loop<br/>Continuous Improvement]
+    end
+
+    %% Prompt System
+    subgraph "Intelligent Prompting"
+        BasePrompts[Base Prompts<br/>Review Templates]
+        RokuPrompts[Roku Prompts<br/>TV Design Criteria]
+        AdaptivePrompts[Adaptive Prompts<br/>Personalized Context]
+    end
+
+    %% Output Processing
+    subgraph "Results Processing"
+        ResultParser[Result Parser<br/>Structured Output]
+        Grading[Letter Grading<br/>A-F Score System]
+        Suggestions[Improvement Suggestions<br/>Actionable Feedback]
+        Analytics[Analytics Dashboard<br/>Performance Insights]
+    end
+
+    %% External Integrations
+    subgraph "External Services"
+        FigmaAPI[Figma API<br/>Design Files]
+        ConfluenceAPI[Confluence API<br/>Documentation]
+        OllamaService[Ollama Service<br/>Local Models]
+        AIHubService[Roku AI Hub<br/>Enterprise AI]
+    end
+
+    %% Flow Connections
+    UI --> FileUpload
+    UI --> FigmaInput
+    UI --> ConfluenceInput
+    UI --> ChatInterface
+
+    FileUpload --> MainAgent
+    FigmaInput --> MainAgent
+    ConfluenceInput --> MainAgent
+    ChatInterface --> MainAgent
+
+    MainAgent --> Router
+    Router --> AIHub
+    Router --> OpenAI
+    Router --> CloudAI
+    Router --> LocalAI
+
+    AIHub --> HubAgent
+    OpenAI --> OpenAIAgent
+    CloudAI --> CloudAgent
+    LocalAI --> LocalAgent
+
+    HubAgent --> AIHubService
+    CloudAgent --> DocLoader
+    LocalAgent --> OllamaService
+    OpenAIAgent --> DocLoader
+
+    DocLoader --> ImageProcessor
+    DocLoader --> PDFProcessor
+    DocLoader --> FigmaConnector
+    DocLoader --> ConfluenceConnector
+
+    FigmaConnector --> FigmaAPI
+    ConfluenceConnector --> ConfluenceAPI
+
+    MainAgent --> StandardReview
+    MainAgent --> RokuReview
+    StandardReview --> CustomRules
+    RokuReview --> CustomRules
+
+    MainAgent --> VPProfile
+    VPProfile --> CustomRequirements
+    VPProfile --> EvalMemory
+    EvalMemory --> LearningEngine
+    LearningEngine --> FeedbackLoop
+    FeedbackLoop --> AdaptivePrompts
+
+    BasePrompts --> MainAgent
+    RokuPrompts --> MainAgent
+    AdaptivePrompts --> MainAgent
+
+    MainAgent --> ResultParser
+    ResultParser --> Grading
+    ResultParser --> Suggestions
+    ResultParser --> Analytics
+
+    MainAgent --> Memory
+
+    %% Styling
+    classDef userInterface fill:#e1f5fe
+    classDef aiSource fill:#f3e5f5
+    classDef coreSystem fill:#e8f5e8
+    classDef processing fill:#fff3e0
+    classDef evaluation fill:#fce4ec
+    classDef learning fill:#f1f8e9
+    classDef prompting fill:#e0f2f1
+    classDef output fill:#fff8e1
+    classDef external fill:#efebe9
+
+    class UI,FileUpload,FigmaInput,ConfluenceInput,ChatInterface userInterface
+    class AIHub,OpenAI,CloudAI,LocalAI aiSource
+    class MainAgent,Memory,Router coreSystem
+    class DocLoader,ImageProcessor,PDFProcessor,FigmaConnector,ConfluenceConnector processing
+    class StandardReview,RokuReview,CustomRules evaluation
+    class VPProfile,CustomRequirements,EvalMemory,LearningEngine,FeedbackLoop learning
+    class BasePrompts,RokuPrompts,AdaptivePrompts prompting
+    class ResultParser,Grading,Suggestions,Analytics output
+    class FigmaAPI,ConfluenceAPI,OllamaService,AIHubService,HubAgent,CloudAgent,LocalAgent,OpenAIAgent external
+```
+
 ## Features
 
 - 📁 **File Upload**: Analyze local design files (images, PDFs)

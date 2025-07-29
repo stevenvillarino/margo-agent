@@ -14,6 +14,11 @@ class Settings:
         self.langchain_api_key = os.getenv("LANGCHAIN_API_KEY")
         self.langchain_project = os.getenv("LANGCHAIN_PROJECT", "design-review-agent")
         
+        # AI Hub Configuration (Roku Enterprise AI)
+        self.ai_hub_token = os.getenv("AI_HUB_TOKEN")
+        self.ai_hub_url = os.getenv("AI_HUB_URL", "https://ai-hub-backend.msc.rokulabs.net")
+        self.ai_hub_enabled = bool(self.ai_hub_token)
+        
         # Figma Configuration
         self.figma_access_token = os.getenv("FIGMA_ACCESS_TOKEN")
         
