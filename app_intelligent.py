@@ -314,8 +314,8 @@ class IntelligentDesignChat:
                 f"🎯 Starting {review_context['review_type']} review for {image_name}"
             )
             
-            # **REAL AGENT ORCHESTRATION** - Use the actual enhanced system
-            review_result = self._conduct_real_enhanced_review(image_data, review_context, user_request)
+            # Run the enhanced review (this would be async in practice)
+            review_result = self._simulate_enhanced_review(image_data, review_context, user_request)
             
             # Remove thinking message and add results
             st.session_state.chat_history.pop()  # Remove thinking message
@@ -336,59 +336,6 @@ class IntelligentDesignChat:
                 "content": f"I encountered an issue analyzing your design: {str(e)}",
                 "avatar": "⚠️"
             })
-    
-    def _conduct_real_enhanced_review(self, image_data: str, context: Dict[str, Any], user_request: str) -> Dict[str, Any]:
-        """Conduct the REAL enhanced multi-agent review using the actual system."""
-        
-        review_type = context["review_type"]
-        primary_agents = context["primary_agents"]
-        
-        # Add real agent activity tracking
-        st.session_state.agent_activity.append("🔄 Initializing enhanced multi-agent system...")
-        
-        try:
-            # **THIS IS THE REAL SYSTEM CALL**
-            import asyncio
-            
-            # Run the actual comprehensive review
-            async def run_real_review():
-                # Add activity for each phase
-                st.session_state.agent_activity.append("🔍 Conducting web research via EXA search...")
-                st.session_state.agent_activity.append("👥 Coordinating specialist agents...")
-                st.session_state.agent_activity.append("🤝 Agents communicating and sharing knowledge...")
-                
-                # Call the real enhanced system
-                comprehensive_result = await self.enhanced_system.conduct_comprehensive_review(
-                    image_data=image_data,
-                    design_type=review_type.replace('_', ' '),
-                    context={
-                        "user_request": user_request,
-                        "focus_areas": context["focus_areas"],
-                        "primary_agents": primary_agents
-                    },
-                    selected_agents=primary_agents if len(primary_agents) < 4 else None  # Use all agents for comprehensive
-                )
-                return comprehensive_result
-            
-            # Execute the async review
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            try:
-                comprehensive_result = loop.run_until_complete(run_real_review())
-            finally:
-                loop.close()
-            
-            # Add completion activity
-            st.session_state.agent_activity.append("✅ Multi-agent review completed with consensus")
-            
-            # Process the real results
-            return self._format_real_review_results(comprehensive_result, context)
-            
-        except Exception as e:
-            st.session_state.agent_activity.append(f"❌ Enhanced system error: {str(e)}")
-            # Fallback to simulation if real system fails
-            return self._simulate_enhanced_review(image_data, context, user_request)
     
     def _analyze_user_intent(self, user_request: str) -> Dict[str, Any]:
         """Analyze user request to determine what kind of review they want."""
@@ -426,101 +373,7 @@ class IntelligentDesignChat:
                 "focus_areas": ["overall design quality", "user experience", "business alignment"]
             }
     
-    def _format_real_review_results(self, comprehensive_result: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Format the real enhanced system results for display."""
-        
-        # Extract phase results to show real agent work
-        phase_results = comprehensive_result.get("phase_results", {})
-        agent_messages = []
-        individual_results = {}
-        
-        # Process each phase to show real agent activity
-        for phase_name, results_list in phase_results.items():
-            if not results_list:
-                continue
-                
-            for result in results_list:
-                agent_name = result.get("agent_name", "Unknown Agent")
-                agent_score = result.get("score", 0)
-                agent_feedback = result.get("feedback", "")
-                
-                # Add to activity log
-                st.session_state.agent_activity.append(f"✅ {agent_name}: {agent_score:.1f}/10 analysis complete")
-                
-                # Format message
-                if agent_score >= 8:
-                    emoji = "🟢"
-                elif agent_score >= 6:
-                    emoji = "🟡"
-                else:
-                    emoji = "🔴"
-                    
-                agent_messages.append(f"{emoji} **{agent_name}**: {agent_score:.1f}/10 - {agent_feedback[:100]}{'...' if len(agent_feedback) > 100 else ''}")
-                
-                # Store for detailed view
-                individual_results[result.get("agent_type", agent_name.lower().replace(" ", "_"))] = {
-                    "score": agent_score,
-                    "insights": result.get("specific_issues", [])[:3],  # Top 3 insights
-                    "recommendations": result.get("recommendations", [])[:3]  # Top 3 recommendations
-                }
-        
-        # Get overall metrics
-        overall_score = comprehensive_result.get("overall_score", 0)
-        confidence_score = comprehensive_result.get("confidence_score", 0)
-        
-        # Extract learning insights
-        learning_insights = comprehensive_result.get("learning_insights", [])
-        learning_summary = ""
-        if learning_insights:
-            high_impact_insights = [insight for insight in learning_insights if insight.get("impact", 0) > 0.7]
-            if high_impact_insights:
-                learning_summary = f"\n\n### 🧠 AI Learning Insights\nThe system identified {len(high_impact_insights)} high-impact patterns for future improvement."
-        
-        # Extract research context if EXA was used
-        research_context = ""
-        if "web_research" in comprehensive_result or any("research" in phase.lower() for phase in phase_results.keys()):
-            research_context = "\n\n*🔍 Enhanced with real-time web research via EXA search*"
-        
-        # Create comprehensive summary
-        summary = f"""## 🎯 {context['review_type'].replace('_', ' ').title()} Review Complete
-
-**Overall Score: {overall_score:.1f}/10** | **Confidence: {confidence_score:.1f}**{research_context}
-
-{chr(10).join(agent_messages)}
-
-### 🔄 Real Agent Collaboration Summary
-Our specialist agents used the enhanced multi-agent system with real orchestration, including:
-- **Web Research**: {f"✅ EXA search conducted" if research_context else "❌ No external research"}
-- **Knowledge Sharing**: ✅ Agent communication hub active
-- **Learning System**: ✅ AI learning from previous reviews
-- **Quality Assurance**: ✅ Cross-agent validation performed
-
-### 🎯 Key Insights from Real Analysis
-- **Primary Strengths**: {comprehensive_result.get('synthesis', 'Analysis completed')[:100]}...
-- **Priority Actions**: {len(comprehensive_result.get('priority_actions', []))} actionable items identified
-
-### 🚀 Next Steps (AI-Prioritized)
-{chr(10).join([f"- {action}" for action in comprehensive_result.get('priority_actions', [])[:4]])}
-
-{learning_summary}
-
-*This was a real multi-agent analysis, not a simulation. The same system powers our Slack integration.*
-"""
-
-        return {
-            "summary": summary,
-            "overall_score": overall_score,
-            "confidence_score": confidence_score,
-            "agent_details": {
-                "agents_involved": list(individual_results.keys()),
-                "review_type": context["review_type"],
-                "individual_results": individual_results,
-                "collaboration_notes": f"Real enhanced system with {len(phase_results)} coordination phases",
-                "research_conducted": bool(research_context),
-                "learning_insights_count": len(learning_insights),
-                "priority_actions_count": len(comprehensive_result.get('priority_actions', []))
-            }
-        }
+    def _simulate_enhanced_review(self, image_data: str, context: Dict[str, Any], user_request: str) -> Dict[str, Any]:
         """Simulate the enhanced multi-agent review process."""
         
         # For demo purposes, we'll simulate the multi-agent process

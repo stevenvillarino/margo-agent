@@ -51,7 +51,7 @@ class AccessibilityReviewAgent:
             exa_api_key: Optional Exa API key for accessibility research
         """
         self.llm = ChatOpenAI(
-            model="gpt-4-turbo",
+            model="gpt-4",
             temperature=0.1,  # Very low for consistent accessibility evaluation
             max_tokens=2000
         )

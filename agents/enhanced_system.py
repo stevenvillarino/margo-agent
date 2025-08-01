@@ -105,8 +105,8 @@ class EnhancedDesignReviewSystem:
         
         vp_agent = MargoVPDesignAgent(
             openai_api_key=self.openai_api_key,
-            company_context=vp_context,
-            business_priorities=vp_priorities,
+            design_vision=vp_context,  # Fixed parameter name
+            design_priorities=vp_priorities,  # Fixed parameter name
             exa_api_key=self.exa_api_key
         )
         

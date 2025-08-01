@@ -64,7 +64,7 @@ class ReviewOrchestrator:
     def __init__(self, 
                  openai_api_key: str,
                  exa_api_key: Optional[str] = None,
-                 model_name: str = "gpt-4-turbo"):
+                 model_name: str = "gpt-4"):
         """
         Initialize the review orchestrator.
         

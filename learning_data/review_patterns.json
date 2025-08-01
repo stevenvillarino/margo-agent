@@ -1,0 +1,128 @@
+{
+  "test_interface_20250801": [
+    {
+      "review_id": "review_20250801_143939",
+      "overall_score": 5.0,
+      "phase_results": {
+        "analysis": [],
+        "ui_specialist": [],
+        "ux_researcher": [],
+        "creative_director": [],
+        "vp_product": [],
+        "accessibility": [],
+        "quality_evaluation": [
+          {
+            "agent_type": "quality_evaluation",
+            "agent_name": "Quality Evaluation Agent",
+            "score": 5.0,
+            "feedback": "## Quality Evaluation Summary\nOverall Quality Score: 5.0/10\nQuality Grade: C\nRisk Level: Medium\n\n## Validation Results\n\n### Compliance Status\n\n### Critical Issues\n- Quality analysis failed: Error code: 404 - {'error': {'message': 'The model `gpt-4-turbo` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}",
+            "specific_issues": [
+              "Quality analysis failed: Error code: 404 - {'error': {'message': 'The model `gpt-4-turbo` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}"
+            ],
+            "recommendations": [],
+            "confidence": 0.6,
+            "review_time": "2025-08-01 14:39:50.682874",
+            "metadata": {
+              "quality_grade": "C",
+              "risk_level": "Medium",
+              "feature_guides_validated": 0,
+              "compliance_status": {},
+              "validation_summary": {
+                "feature_guides": {
+                  "count": 0,
+                  "avg_compliance": 0,
+                  "guides": []
+                },
+                "product_requirements": {
+                  "coverage_score": 0.5,
+                  "alignment_score": 0.5,
+                  "gaps": 1
+                },
+                "research_alignment": {
+                  "research_score": 0.5,
+                  "best_practice_score": 0
+                },
+                "pain_point_coverage": {
+                  "coverage_score": 1.0,
+                  "addressed_count": 0,
+                  "missed_count": 0
+                },
+                "design_principles": {
+                  "overall_score": 0.5,
+                  "principle_count": 0
+                }
+              },
+              "design_type": "test_interface",
+              "confluence_enabled": false,
+              "research_enabled": true
+            }
+          }
+        ],
+        "synthesis": []
+      },
+      "timestamp": "2025-08-01T14:39:50.802967"
+    },
+    {
+      "review_id": "review_20250801_144643",
+      "overall_score": 5.0,
+      "phase_results": {
+        "analysis": [],
+        "ui_specialist": [],
+        "ux_researcher": [],
+        "creative_director": [],
+        "vp_product": [],
+        "accessibility": [],
+        "quality_evaluation": [
+          {
+            "agent_type": "quality_evaluation",
+            "agent_name": "Quality Evaluation Agent",
+            "score": 5.0,
+            "feedback": "## Quality Evaluation Summary\nOverall Quality Score: 5.0/10\nQuality Grade: C\nRisk Level: Medium\n\n## Validation Results\n\n### Compliance Status\n\n### Critical Issues\n- Quality analysis failed: Error code: 404 - {'error': {'message': 'The model `gpt-4` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}",
+            "specific_issues": [
+              "Quality analysis failed: Error code: 404 - {'error': {'message': 'The model `gpt-4` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}"
+            ],
+            "recommendations": [],
+            "confidence": 0.6,
+            "review_time": "2025-08-01 14:46:52.886638",
+            "metadata": {
+              "quality_grade": "C",
+              "risk_level": "Medium",
+              "feature_guides_validated": 0,
+              "compliance_status": {},
+              "validation_summary": {
+                "feature_guides": {
+                  "count": 0,
+                  "avg_compliance": 0,
+                  "guides": []
+                },
+                "product_requirements": {
+                  "coverage_score": 0.5,
+                  "alignment_score": 0.5,
+                  "gaps": 1
+                },
+                "research_alignment": {
+                  "research_score": 0.5,
+                  "best_practice_score": 0
+                },
+                "pain_point_coverage": {
+                  "coverage_score": 1.0,
+                  "addressed_count": 0,
+                  "missed_count": 0
+                },
+                "design_principles": {
+                  "overall_score": 0.5,
+                  "principle_count": 0
+                }
+              },
+              "design_type": "test_interface",
+              "confluence_enabled": false,
+              "research_enabled": true
+            }
+          }
+        ],
+        "synthesis": []
+      },
+      "timestamp": "2025-08-01T14:46:53.011621"
+    }
+  ]
+}

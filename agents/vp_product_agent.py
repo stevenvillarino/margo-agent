@@ -51,7 +51,7 @@ class MargoVPDesignAgent:
             exa_api_key: Optional Exa API key for design trend research
         """
         self.llm = ChatOpenAI(
-            model="gpt-4-turbo",
+            model="gpt-4",
             temperature=0.2,  # More conservative, business-focused
             max_tokens=2000
         )
@@ -72,6 +72,9 @@ class MargoVPDesignAgent:
             "Optimize for TV/remote interaction",
             "Drive design system adoption"
         ]
+        
+        # Also store as business_priorities for backward compatibility
+        self.business_priorities = self.design_priorities
         
         # Memory for design leadership insights
         self.memory = ConversationBufferMemory(return_messages=True)

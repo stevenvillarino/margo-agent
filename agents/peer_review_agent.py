@@ -41,7 +41,7 @@ class PeerDesignReviewAgent:
             exa_api_key: Optional Exa API key for research
         """
         self.llm = ChatOpenAI(
-            model="gpt-4-turbo",
+            model="gpt-4",
             temperature=0.4,  # Slightly more creative than analysis
             max_tokens=1500
         )

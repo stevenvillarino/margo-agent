@@ -63,7 +63,7 @@ class QualityEvaluationAgent:
             quality_standards: Custom quality standards and thresholds
         """
         self.llm = ChatOpenAI(
-            model="gpt-4-turbo",
+            model="gpt-4",
             temperature=0.1,  # Very low for consistent evaluation
             max_tokens=2500
         )
