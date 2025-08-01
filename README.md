@@ -1,53 +1,77 @@
-# Design Review Agent
+# 🎭 Margo Agent - Advanced Design Workflow Automation
 
-A LangChain-powered AI agent for analyzing and reviewing design files, mockups, and design documents with support for multiple sources including local files, Figma, and Confluence.
+A sophisticated multi-agent system for design workflow automation where **Margo (VP of Design)** serves as the senior "tollgate" for strategic design decisions, supported by specialized agents handling different aspects of the design process.
 
-## Architecture Overview
+## 🏗️ System Architecture
+
+The Margo Agent system consists of multiple specialized AI agents working together to provide comprehensive design review and workflow automation:
+
+### 🎯 Agent Hierarchy
 
 ```mermaid
 graph TB
-    %% User Input Layer
-    subgraph "User Interface (Streamlit)"
-        UI[Streamlit Web App]
-        FileUpload[📁 File Upload]
-        FigmaInput[🎨 Figma URL]
-        ConfluenceInput[📚 Confluence Pages]
-        ChatInterface[💬 Interactive Chat]
-    end
-
-    %% AI Source Selection
-    subgraph "AI Source Selection"
-        AIHub[🏢 Roku AI Hub<br/>Enterprise]
-        OpenAI[🔑 OpenAI API<br/>Premium]
-        CloudAI[🆓 Free Cloud AI<br/>Groq/Together/HF]
-        LocalAI[💻 Local AI<br/>Ollama]
-    end
-
-    %% Core Agent System
-    subgraph "Core Agent System"
-        MainAgent[Design Review Agent<br/>Primary Orchestrator]
-        Memory[Conversation Memory<br/>Chat History]
-        Router[Agent Router<br/>Source Selection]
-    end
-
+    %% Margo - Strategic Decision Maker
+    Margo[🎯 Margo<br/>VP of Design<br/>Strategic Tollgate]
+    
+    %% Communication Hub - Central Orchestrator
+    Hub[💬 Communication Hub<br/>Agent Orchestrator<br/>Message Router]
+    
     %% Specialized Agents
-    subgraph "Specialized AI Agents"
-        HubAgent[AI Hub Reviewer<br/>Enterprise Models]
-        CloudAgent[Cloud Reviewer<br/>Free/Low-cost APIs]
-        LocalAgent[Local Reviewer<br/>Ollama Models]
-        OpenAIAgent[OpenAI Agent<br/>GPT-4 Vision]
-    end
+    Designer[🎨 Senior Designer Agent<br/>UI/UX Creation<br/>User Research]
+    QA[🧪 QA Engineer Agent<br/>Quality Assurance<br/>Accessibility Testing]
+    Research[� Research Agent<br/>EXA Web Research<br/>Design Trends]
+    JIRA[🎫 JIRA Agent<br/>Issue Tracking<br/>Project Management]
+    Playwright[🧪 Playwright Agent<br/>Visual Validation<br/>Cross-browser Testing]
+    
+    %% Data Flow
+    Margo --> Hub
+    Hub --> Designer
+    Hub --> QA
+    Hub --> Research
+    Hub --> JIRA
+    Hub --> Playwright
+    
+    Designer --> Hub
+    QA --> Hub
+    Research --> Hub
+    JIRA --> Hub
+    Playwright --> Hub
+    
+    Hub --> Margo
+    
+    %% Knowledge Base
+    Knowledge[📚 Shared Knowledge Base<br/>Design Guidelines<br/>Best Practices]
+    Hub --> Knowledge
+    Knowledge --> Hub
+```
 
-    %% Content Processing Pipeline
-    subgraph "Content Processing"
-        DocLoader[Document Loaders<br/>Multi-source Support]
-        ImageProcessor[Image Processor<br/>Vision Analysis]
-        PDFProcessor[PDF Processor<br/>Text Extraction]
-        FigmaConnector[Figma API<br/>Design Files]
-        ConfluenceConnector[Confluence API<br/>Documentation]
-    end
+### 🔄 Workflow Orchestration
 
-    %% Evaluation System
+```mermaid
+sequenceDiagram
+    participant D as 🎨 Designer Agent
+    participant H as 💬 Communication Hub
+    participant Q as 🧪 QA Agent
+    participant R as 🔍 Research Agent
+    participant M as 🎯 Margo (VP Design)
+    participant J as 🎫 JIRA Agent
+    
+    D->>H: Submit new design
+    H->>Q: Route for QA testing
+    H->>R: Request design research
+    
+    Q->>H: QA results (2 issues found)
+    R->>H: Research findings
+    
+    H->>D: Compile feedback
+    D->>H: Updated design (issues fixed)
+    
+    H->>M: Escalate for strategic review
+    M->>H: Strategic feedback/approval
+    
+    H->>J: Create implementation tickets
+    J->>H: Project tracking updated
+```
     subgraph "Evaluation System"
         StandardReview[Standard Design Review<br/>General/UI/UX/Accessibility]
         RokuReview[Roku TV Design Review<br/>10-foot UI/Remote Navigation]
