@@ -3,15 +3,16 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index_minimal.py"
     }
   ],
   "env": {
     "PYTHONPATH": "./"
   },
   "functions": {
-    "api/index.py": {
-      "maxDuration": 30
+    "api/index_minimal.py": {
+      "maxDuration": 30,
+      "memory": 512
     }
   }
 }

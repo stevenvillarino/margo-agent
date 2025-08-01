@@ -13,10 +13,38 @@ __pycache__/
 .idea/
 *.log
 .streamlit/
+
+# Exclude heavy files
 app_old.py
-demo_free_ai.py
+app.py
+demo_*.py
 check_env.py
-test_confluence.py
-setup_ollama.sh
+test_*.py
+setup_*.sh
+initialize_*.py
+validate_*.py
+quick_*.py
+slack_bot.py
+
+# Exclude documentation and configs (except essential ones)
 *.md
 !README.md
+*.txt
+!requirements-vercel.txt
+
+# Exclude agent directories to use lightweight version
+agents/
+core/
+config/
+examples/
+knowledge/
+prompts/
+screenshots/
+src/
+test_results/
+vp_preferences/
+
+# Package files
+package.json
+tsconfig.json
+wrangler.toml
