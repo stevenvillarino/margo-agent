@@ -1,0 +1,25 @@
+name = "roku-design-review-bot"
+main = "src/index.ts"
+compatibility_date = "2024-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "roku-design-review-bot-prod"
+vars = { ENVIRONMENT = "production" }
+
+[env.staging]  
+name = "roku-design-review-bot-staging"
+vars = { ENVIRONMENT = "staging" }
+
+# KV Storage for caching
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "8bd53279136b4ffb880179ea0258d6a9"
+
+# Workers AI binding
+[ai]
+binding = "AI"
+
+# Variables (secrets set separately)
+[vars]
+ENVIRONMENT = "development"
