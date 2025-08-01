@@ -117,12 +117,12 @@ def display_roku_results(review_result: dict):
 
 def main():
     st.set_page_config(
-        page_title="Margo - AI Design Review",
+        page_title="VP of Design - AI Design Review",
         page_icon="🎨",
         layout="wide"
     )
     
-    st.title("🎨 Margo - AI Design Review Assistant")
+    st.title("🎨 VP of Design - AI Design Review Assistant")
     st.markdown("Upload your design files and get AI-powered feedback!")
     
     # AI Source Selection

@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from agents.orchestrator import ReviewResult
 from agents.exa_search import ExaSearchAgent
-from agents.confluence_utils import ConfluenceClient
+from agents.confluence_utils import ConfluenceURLParser
 
 
 @dataclass
@@ -72,11 +72,13 @@ class QualityEvaluationAgent:
         self.confluence_client = None
         if confluence_config:
             try:
-                self.confluence_client = ConfluenceClient(
-                    url=confluence_config.get('url'),
-                    username=confluence_config.get('username'),
-                    api_key=confluence_config.get('api_key')
-                )
+                # TODO: Implement proper ConfluenceClient when available
+                # self.confluence_client = ConfluenceClient(
+                #     url=confluence_config.get('url'),
+                #     username=confluence_config.get('username'),
+                #     api_key=confluence_config.get('api_key')
+                # )
+                pass
             except Exception as e:
                 print(f"Warning: Could not initialize Confluence client: {e}")
         

@@ -14,8 +14,8 @@ from dataclasses import dataclass, asdict
 
 from agents.orchestrator import ReviewOrchestrator, ReviewResult, ReviewPhase
 from agents.peer_review_agent import PeerDesignReviewAgent, create_peer_reviewer
-from agents.vp_product_agent import VPProductReviewAgent
-from agents.accessibility_agent import AccessibilityAgent
+from agents.vp_product_agent import MargoVPDesignAgent
+from agents.accessibility_agent import AccessibilityReviewAgent
 from agents.quality_evaluation_agent import QualityEvaluationAgent
 from agents.learning_system import AgentLearningSystem
 
@@ -103,7 +103,7 @@ class EnhancedDesignReviewSystem:
             "Reduce customer acquisition costs"
         ]
         
-        vp_agent = VPProductReviewAgent(
+        vp_agent = MargoVPDesignAgent(
             openai_api_key=self.openai_api_key,
             company_context=vp_context,
             business_priorities=vp_priorities,
@@ -111,7 +111,7 @@ class EnhancedDesignReviewSystem:
         )
         
         # Create accessibility agent
-        accessibility_agent = AccessibilityAgent(
+        accessibility_agent = AccessibilityReviewAgent(
             openai_api_key=self.openai_api_key,
             wcag_level="AA",
             target_disabilities=[

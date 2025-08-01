@@ -16,6 +16,13 @@ pandas
 flask
 exa_py
 
+# Performance & Optimization Dependencies
+psutil>=5.9.0
+redis>=4.5.0
+prometheus-client>=0.16.0
+tenacity>=8.2.0
+aiohttp>=3.8.0
+
 # Slack Bot Dependencies
 slack-bolt>=1.18.0
 slack-sdk>=3.23.0
