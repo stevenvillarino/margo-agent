@@ -1,5 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 import json
+import urllib.parse
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -12,199 +13,187 @@ class handler(BaseHTTPRequestHandler):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎨 VP of Design Agent System</title>
+    <title>Chat</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #663399;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.2em;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         .chat-container {
-            display: flex;
-            gap: 20px;
-            height: 600px;
-        }
-        .chat-area {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-        }
-        .upload-area {
             flex: 1;
-            border: 2px dashed #663399;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            background: white;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            background: #f8f9fa;
         }
         .messages {
             flex: 1;
-            background: #f8f9fa;
-            border-radius: 10px;
             padding: 20px;
             overflow-y: auto;
-            margin-bottom: 20px;
-            border: 1px solid #e0e0e0;
+            background: white;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+        .message.user {
+            background: #007cba;
+            color: white;
+            margin-left: auto;
+        }
+        .message.assistant {
+            background: #f1f1f1;
+            color: #333;
         }
         .input-area {
+            padding: 20px;
+            border-top: 1px solid #eee;
             display: flex;
             gap: 10px;
+            background: white;
         }
         .message-input {
             flex: 1;
-            padding: 15px;
-            border: 2px solid #663399;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
             border-radius: 25px;
             font-size: 16px;
             outline: none;
         }
+        .message-input:focus {
+            border-color: #007cba;
+        }
         .send-btn {
-            background: #663399;
+            background: #007cba;
             color: white;
             border: none;
-            padding: 15px 25px;
+            padding: 12px 24px;
             border-radius: 25px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 500;
         }
         .send-btn:hover {
-            background: #552288;
+            background: #005a8a;
         }
-        .upload-btn {
-            background: #663399;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .upload-btn:hover {
-            background: #552288;
-        }
-        .upload-text {
-            margin-bottom: 15px;
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎨 VP of Design Agent System</h1>
-        <p class="subtitle">Sophisticated multi-agent design workflow automation powered by AI</p>
-        
-        <div class="chat-container">
-            <div class="chat-area">
-                <div class="messages" id="messages">
-                    <p><strong>VP Design System:</strong> Hello! I'm your sophisticated multi-agent design review system. Margo (VP of Design) leads our specialized agents for comprehensive design analysis. Upload a design file and tell me what you'd like us to review, or start chatting about design principles!</p>
-                </div>
-                <div class="input-area">
-                    <input type="text" class="message-input" id="messageInput" placeholder="Describe what you'd like our design team to review...">
-                    <button class="send-btn" onclick="sendMessage()">Send</button>
-                </div>
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="message assistant">
+                Hello! How can I help you today?
             </div>
-            
-            <div class="upload-area">
-                <div class="upload-text">
-                    <h3>📁 Upload Design File</h3>
-                    <p>Drop files here or click to browse<br>
-                    <small>Supports images, PDFs, and design files</small></p>
-                </div>
-                <input type="file" id="fileInput" accept="image/*,.pdf,.sketch,.fig,.xd" style="display: none;" onchange="handleFile(this)">
-                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
-            </div>
+        </div>
+        <div class="input-area">
+            <input type="text" class="message-input" id="messageInput" placeholder="Type your message...">
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <script>
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
+        function addMessage(content, isUser = false) {
             const messages = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            messageDiv.textContent = content;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
             const message = input.value.trim();
             
-            if (message) {
-                messages.innerHTML += '<p><strong>You:</strong> ' + message + '</p>';
+            if (!message) return;
+            
+            // Disable input
+            input.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            // Add user message
+            addMessage(message, true);
+            input.value = '';
+            
+            try {
+                // Send to API
+                const response = await fetch(window.location.pathname, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
                 
-                // Simulate AI agent system response
-                setTimeout(() => {
-                    const responses = [
-                        'The design review agent system is analyzing your request: "' + message + '". Multiple AI agents are collaborating to provide comprehensive feedback.',
-                        'I\'ve processed your message about "' + message + '". The multi-agent system is ready to provide intelligent design analysis.',
-                        'Your request "' + message + '" has been received. The agent orchestrator is coordinating specialized design review agents for optimal analysis.'
-                    ];
-                    const response = responses[Math.floor(Math.random() * responses.length)];
-                    messages.innerHTML += '<p><strong>Margo AI:</strong> ' + response + '</p>';
-                    messages.scrollTop = messages.scrollHeight;
-                }, 1000);
+                const data = await response.json();
                 
-                input.value = '';
-                messages.scrollTop = messages.scrollHeight;
+                if (data.error) {
+                    addMessage(`Error: ${data.error}`);
+                } else {
+                    addMessage(data.response || 'I received your message.');
+                }
+                
+            } catch (error) {
+                addMessage(`Connection error: ${error.message}`);
             }
+            
+            // Re-enable input
+            input.disabled = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+            input.focus();
         }
         
-        function handleFile(input) {
-            const messages = document.getElementById('messages');
-            if (input.files && input.files[0]) {
-                const fileName = input.files[0].name;
-                messages.innerHTML += '<p><strong>You:</strong> Uploaded design file: ' + fileName + '</p>';
-                
-                setTimeout(() => {
-                    messages.innerHTML += '<p><strong>Margo AI:</strong> Perfect! I can see you\'ve uploaded "' + fileName + '". The agent system is ready to analyze this design file. Multiple specialized agents will review accessibility, visual design, UX patterns, and brand consistency. Full AI analysis is being deployed!</p>';
-                    messages.scrollTop = messages.scrollHeight;
-                }, 1200);
-            }
-        }
-        
+        // Enter key to send
         document.getElementById('messageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
             }
         });
         
-        // Initialize with agent system ready message
-        setTimeout(() => {
-            const messages = document.getElementById('messages');
-            messages.innerHTML += '<p><strong>System:</strong> 🎨 Multi-agent design review system initialized and ready for intelligent analysis!</p>';
-            messages.scrollTop = messages.scrollHeight;
-        }, 2000);
+        // Focus input on load
+        document.getElementById('messageInput').focus();
     </script>
 </body>
 </html>"""
         
         self.wfile.write(html.encode('utf-8'))
-        
+
     def do_POST(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        
-        response = {
-            'status': 'active', 
-            'message': 'Multi-agent design review system operational',
-            'agents': ['accessibility', 'visual_design', 'ux_patterns', 'brand_consistency']
-        }
-        self.wfile.write(json.dumps(response).encode('utf-8'))
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            message = data.get('message', '')
+            
+            # Simple response
+            response = {
+                'response': f'I received your message: "{message}". This is a working chat interface. The message was successfully processed.'
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            
+        except Exception as e:
+            error_response = {'error': str(e)}
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(error_response).encode('utf-8'))
