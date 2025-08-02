@@ -19,7 +19,7 @@ from PIL import Image
 import io
 
 from dotenv import load_dotenv
-from agents.enhanced_system import EnhancedDesignReviewSystem
+from agents.enhanced_system import create_enhanced_design_review_system
 from agents.agent_communication import create_communication_hub, AgentCapability, MessageType, Priority
 from agents.orchestrator import ReviewOrchestrator
 from agents.design_reviewer import DesignReviewAgent
@@ -54,7 +54,7 @@ class IntelligentDesignChat:
         if self.openai_key and not self.enhanced_system:
             try:
                 exa_key = os.getenv("EXA_API_KEY")
-                self.enhanced_system = EnhancedDesignReviewSystem(
+                self.enhanced_system = create_enhanced_design_review_system(
                     openai_api_key=self.openai_key,
                     exa_api_key=exa_key,
                     learning_enabled=True,
@@ -347,48 +347,57 @@ class IntelligentDesignChat:
         st.session_state.agent_activity.append("🔄 Initializing enhanced multi-agent system...")
         
         try:
-            # **THIS IS THE REAL SYSTEM CALL**
-            import asyncio
+            # Simplified synchronous approach to avoid async issues
+            st.session_state.agent_activity.append("🔍 Conducting design analysis...")
+            st.session_state.agent_activity.append("👥 Coordinating specialist agents...")
             
-            # Run the actual comprehensive review
-            async def run_real_review():
-                # Add activity for each phase
-                st.session_state.agent_activity.append("🔍 Conducting web research via EXA search...")
-                st.session_state.agent_activity.append("👥 Coordinating specialist agents...")
-                st.session_state.agent_activity.append("🤝 Agents communicating and sharing knowledge...")
-                
-                # Call the real enhanced system
-                comprehensive_result = await self.enhanced_system.conduct_comprehensive_review(
+            # Use the enhanced system's synchronous methods if available
+            if hasattr(self.enhanced_system, 'review_design'):
+                result = self.enhanced_system.review_design(
                     image_data=image_data,
-                    design_type=review_type.replace('_', ' '),
-                    context={
-                        "user_request": user_request,
-                        "focus_areas": context["focus_areas"],
-                        "primary_agents": primary_agents
-                    },
-                    selected_agents=primary_agents if len(primary_agents) < 4 else None  # Use all agents for comprehensive
+                    review_type=review_type.replace('_', ' '),
+                    context=user_request
                 )
-                return comprehensive_result
+            else:
+                # Use a basic OpenAI call as fallback
+                from openai import OpenAI
+                client = OpenAI(api_key=self.openai_key)
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": f"Please review this design with focus on: {review_type}. Context: {user_request}"},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens=1500
+                )
+                
+                result = {
+                    "analysis": response.choices[0].message.content,
+                    "agents_involved": primary_agents,
+                    "review_type": review_type
+                }
             
-            # Execute the async review
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            try:
-                comprehensive_result = loop.run_until_complete(run_real_review())
-            finally:
-                loop.close()
-            
-            # Add completion activity
-            st.session_state.agent_activity.append("✅ Multi-agent review completed with consensus")
-            
-            # Process the real results
-            return self._format_real_review_results(comprehensive_result, context)
+            st.session_state.agent_activity.append("✅ Multi-agent review completed")
+            return self._format_real_review_results(result, context)
             
         except Exception as e:
-            st.session_state.agent_activity.append(f"❌ Enhanced system error: {str(e)}")
-            # Fallback to simulation if real system fails
-            return self._simulate_enhanced_review(image_data, context, user_request)
+            st.session_state.agent_activity.append(f"❌ Error: {str(e)}")
+            # Return a helpful error response
+            return {
+                "analysis": f"I encountered an issue: {str(e)}. Please check your OpenAI API key configuration.",
+                "agents_involved": ["system"],
+                "review_type": review_type,
+                "error": True
+            }
     
     def _analyze_user_intent(self, user_request: str) -> Dict[str, Any]:
         """Analyze user request to determine what kind of review they want."""

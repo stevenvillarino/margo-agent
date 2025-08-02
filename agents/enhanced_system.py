@@ -8,23 +8,17 @@ and provides comprehensive design evaluation with continuous improvement.
 import asyncio
 import json
 import base64
+import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 
-from agents.orchestrator import ReviewOrchestrator, ReviewResult, ReviewPhase
+from agents.orchestrator import ReviewOrchestrator, ReviewResult, ReviewPhase, OrchestratedReview
 from agents.peer_review_agent import PeerDesignReviewAgent, create_peer_reviewer
 from agents.vp_product_agent import MargoVPDesignAgent
 from agents.accessibility_agent import AccessibilityReviewAgent
 from agents.quality_evaluation_agent import QualityEvaluationAgent
 from agents.learning_system import AgentLearningSystem
-
-import asyncio
-import os
-from datetime import datetime
-from typing import Dict, List, Any, Optional
-
-from agents.orchestrator import ReviewOrchestrator, OrchestratedReview
 from agents.exa_search import ExaSearchAgent
 
 
@@ -42,27 +36,38 @@ class EnhancedDesignReviewSystem:
         Initialize the enhanced design review system.
         
         Args:
-            openai_api_key: OpenAI API key
+            openai_api_key: OpenAI API key for LLM interactions
             exa_api_key: Optional Exa API key for web research
-            learning_enabled: Whether to enable learning system
-            company_context: Company-specific context for VP agent
+            learning_enabled: Whether to enable the learning system
+            company_context: Optional company context for customization
         """
         self.openai_api_key = openai_api_key
         self.exa_api_key = exa_api_key
+        self.learning_enabled = learning_enabled
         
-        # Initialize orchestrator
+        # Initialize orchestrator with API keys
         self.orchestrator = ReviewOrchestrator(
             openai_api_key=openai_api_key,
             exa_api_key=exa_api_key
         )
         
-        # Initialize learning system
+        # Initialize optional components
+        self.exa_agent = None
+        if exa_api_key:
+            try:
+                self.exa_agent = ExaSearchAgent(exa_api_key)
+            except Exception as e:
+                print(f"Warning: Could not initialize Exa search: {e}")
+        
         self.learning_system = None
         if learning_enabled:
-            self.learning_system = AgentLearningSystem()
+            try:
+                self.learning_system = AgentLearningSystem()
+            except Exception as e:
+                print(f"Warning: Could not initialize learning system: {e}")
         
-        # Initialize specialized agents
-        self._initialize_agents(company_context)
+        # Initialize workflow orchestrator (will be set after this instance is created)
+        self.workflow_orchestrator = None
         
         # System configuration
         self.config = {
@@ -73,10 +78,17 @@ class EnhancedDesignReviewSystem:
             "confidence_threshold": 0.7
         }
         
-        print("🚀 Enhanced Design Review System initialized")
-        print(f"🤖 Total agents: {len(self.orchestrator.agents)}")
-        print(f"🧠 Learning: {'enabled' if learning_enabled else 'disabled'}")
-        print(f"🔍 Web research: {'enabled' if exa_api_key else 'disabled'}")
+        # Initialize agents
+        self._initialize_agents(company_context)
+        
+        print("🎯 Enhanced Design Review System initialized")
+        print(f"📊 Agents registered: {len(self.orchestrator.agents)}")
+        print(f"🧠 Learning system: {'enabled' if self.learning_system else 'disabled'}")
+        print(f"🔍 Web research: {'enabled' if self.exa_agent else 'disabled'}")
+    
+    def set_workflow_orchestrator(self, workflow_orchestrator):
+        """Set the workflow orchestrator after initialization to avoid circular imports."""
+        self.workflow_orchestrator = workflow_orchestrator
     
     def _initialize_agents(self, company_context: Dict[str, Any] = None):
         """Initialize and register all specialized agents."""
@@ -210,6 +222,9 @@ class EnhancedDesignReviewSystem:
             learning_insights = []
             if self.learning_system:
                 learning_insights = self.learning_system.process_review(orchestrated_review)
+                
+                # Learn from this design review for future improvements
+                await self._learn_from_design_review(orchestrated_review, design_type, context)
             
             # Compile comprehensive results
             results = {
@@ -243,6 +258,342 @@ class EnhancedDesignReviewSystem:
             # Restore original agents if they were filtered
             if selected_agents:
                 self.orchestrator.agents = original_agents
+
+    async def handle_knowledge_question(self, question: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """Handle knowledge questions using the workflow orchestrator."""
+        try:
+            # Use the workflow orchestrator to detect and handle knowledge gaps
+            result = await self.workflow_orchestrator.handle_knowledge_question(question, user_id)
+            
+            # Log the interaction for learning and knowledge evolution
+            if hasattr(self.learning_system, 'log_interaction'):
+                await self.learning_system.log_interaction(
+                    question=question,
+                    response=result.get('answer', ''),
+                    confidence=result.get('confidence', 0.0),
+                    user_id=user_id
+                )
+            
+            # Learn from this knowledge interaction
+            await self._learn_from_knowledge_interaction(question, result, user_id)
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error handling knowledge question: {e}")
+            # Even errors are learning opportunities
+            if self.learning_system:
+                await self.learning_system.log_knowledge_gap(question, "system_error", user_id)
+            
+            return {
+                'answer': 'I apologize, but I encountered an error processing your question.',
+                'confidence': 0.0,
+                'error': str(e)
+            }
+
+    async def _learn_from_knowledge_interaction(self, question: str, result: Dict[str, Any], user_id: Optional[str] = None):
+        """Learn from knowledge interactions to improve future responses."""
+        if not self.learning_system:
+            return
+            
+        try:
+            # Categorize the question type for learning
+            question_category = self._categorize_question(question)
+            
+            # Track question patterns
+            await self.learning_system.track_question_pattern(
+                question=question,
+                category=question_category,
+                confidence=result.get('confidence', 0.0),
+                user_id=user_id,
+                timestamp=datetime.now()
+            )
+            
+            # If confidence is low, this is a learning opportunity
+            if result.get('confidence', 0.0) < 0.7:
+                await self.learning_system.identify_knowledge_gap(
+                    question=question,
+                    category=question_category,
+                    current_knowledge=result.get('answer', ''),
+                    suggested_improvements=self._suggest_knowledge_improvements(question, result)
+                )
+                
+            # Learn from successful knowledge provision
+            elif result.get('confidence', 0.0) > 0.8:
+                await self.learning_system.reinforce_knowledge_pattern(
+                    question=question,
+                    category=question_category,
+                    successful_response=result.get('answer', '')
+                )
+                
+        except Exception as e:
+            print(f"Error in knowledge learning: {e}")
+
+    def _categorize_question(self, question: str) -> str:
+        """Categorize questions to help the system learn patterns."""
+        question_lower = question.lower()
+        
+        # Brand and guidelines
+        if any(keyword in question_lower for keyword in ['brand', 'guideline', 'standard', 'style', 'color', 'font', 'logo']):
+            return 'brand_guidelines'
+        
+        # Accessibility
+        elif any(keyword in question_lower for keyword in ['accessibility', 'a11y', 'wcag', 'screen reader', 'contrast']):
+            return 'accessibility'
+        
+        # User experience
+        elif any(keyword in question_lower for keyword in ['user', 'experience', 'usability', 'journey', 'flow']):
+            return 'user_experience'
+        
+        # Technical implementation
+        elif any(keyword in question_lower for keyword in ['implement', 'code', 'technical', 'development', 'css', 'react']):
+            return 'technical_implementation'
+        
+        # Design patterns
+        elif any(keyword in question_lower for keyword in ['pattern', 'component', 'layout', 'grid', 'navigation']):
+            return 'design_patterns'
+        
+        # Performance
+        elif any(keyword in question_lower for keyword in ['performance', 'speed', 'optimization', 'loading']):
+            return 'performance'
+        
+        # Business/product
+        elif any(keyword in question_lower for keyword in ['business', 'kpi', 'metric', 'conversion', 'engagement']):
+            return 'business_product'
+        
+        else:
+            return 'general_design'
+
+    def _suggest_knowledge_improvements(self, question: str, result: Dict[str, Any]) -> List[str]:
+        """Suggest how to improve knowledge for similar future questions."""
+        suggestions = []
+        category = self._categorize_question(question)
+        
+        if category == 'brand_guidelines':
+            suggestions.extend([
+                "Add more detailed brand documentation",
+                "Include visual examples of brand application",
+                "Create brand decision trees for common scenarios",
+                "Connect to official brand asset libraries"
+            ])
+        elif category == 'accessibility':
+            suggestions.extend([
+                "Expand WCAG guidelines database",
+                "Add more accessibility testing tools",
+                "Include real user feedback on accessibility",
+                "Create accessibility pattern library"
+            ])
+        elif category == 'design_patterns':
+            suggestions.extend([
+                "Build comprehensive design pattern library",
+                "Document when to use each pattern",
+                "Include anti-patterns to avoid",
+                "Add pattern performance implications"
+            ])
+        else:
+            suggestions.extend([
+                f"Expand knowledge base for {category} questions",
+                "Connect to more external knowledge sources",
+                "Gather expert input for this domain",
+                "Create decision frameworks for this area"
+            ])
+            
+        return suggestions
+
+    async def enhanced_review_with_knowledge_integration(self, image_data: str, design_type: str, user_question: str = None, user_id: str = None) -> Dict[str, Any]:
+        """Enhanced review that integrates knowledge gap detection and learning."""
+        try:
+            # Check if this is primarily a knowledge question
+            if user_question and any(keyword in user_question.lower() for keyword in ['brand', 'guideline', 'standard', 'policy', 'requirement']):
+                knowledge_result = await self.handle_knowledge_question(user_question, user_id)
+                
+                # If we have good knowledge, combine it with the design review
+                if knowledge_result.get('confidence', 0) > 0.7:
+                    review_result = await self.conduct_comprehensive_review(
+                        image_data=image_data,
+                        design_type=design_type,
+                        context={'user_question': user_question}
+                    )
+                    
+                    # Merge knowledge and review results
+                    return {
+                        'review': review_result,
+                        'knowledge': knowledge_result,
+                        'type': 'integrated_review',
+                        'timestamp': datetime.now().isoformat()
+                    }
+            
+            # Standard comprehensive review
+            return await self.conduct_comprehensive_review(
+                image_data=image_data,
+                design_type=design_type,
+                context={'user_question': user_question} if user_question else None
+            )
+            
+        except Exception as e:
+            print(f"Error in enhanced review with knowledge integration: {e}")
+            return await self.conduct_comprehensive_review(
+                image_data=image_data,
+                design_type=design_type,
+                context={'user_question': user_question} if user_question else None
+            )
+
+    async def _learn_from_design_review(self, orchestrated_review: OrchestratedReview, design_type: str, context: Dict[str, Any] = None):
+        """Learn from design reviews to improve future analysis and knowledge."""
+        if not self.learning_system:
+            return
+            
+        try:
+            # Extract learning patterns from the review
+            score = orchestrated_review.overall_score
+            consensus_level = self._calculate_consensus_level(orchestrated_review)
+            
+            # Learn from high-quality reviews (good score + high consensus)
+            if score >= 8.0 and consensus_level >= 0.8:
+                await self._learn_from_successful_design(orchestrated_review, design_type, context)
+            
+            # Learn from problematic reviews (low score or low consensus)
+            elif score < 6.0 or consensus_level < 0.6:
+                await self._learn_from_problematic_design(orchestrated_review, design_type, context)
+            
+            # Learn from agent disagreements
+            if consensus_level < 0.7:
+                await self._learn_from_agent_disagreement(orchestrated_review)
+                
+            # Learn from user context patterns
+            if context and context.get('user_question'):
+                await self._learn_from_user_context(context['user_question'], orchestrated_review)
+                
+        except Exception as e:
+            print(f"Error learning from design review: {e}")
+
+    async def _learn_from_successful_design(self, review: OrchestratedReview, design_type: str, context: Dict[str, Any] = None):
+        """Learn patterns from highly successful designs."""
+        if not self.learning_system:
+            return
+            
+        # Extract success patterns
+        successful_elements = []
+        
+        for phase_results in review.phase_results.values():
+            for result in phase_results:
+                if result.score >= 8.0:
+                    # Extract what this agent found successful
+                    successful_elements.extend([
+                        rec for rec in result.recommendations 
+                        if any(positive in rec.lower() for positive in ['excellent', 'great', 'strong', 'effective'])
+                    ])
+        
+        # Learn the pattern
+        await self.learning_system.record_success_pattern(
+            design_type=design_type,
+            elements=successful_elements,
+            score=review.overall_score,
+            context=context or {}
+        )
+
+    async def _learn_from_problematic_design(self, review: OrchestratedReview, design_type: str, context: Dict[str, Any] = None):
+        """Learn from designs that had issues."""
+        if not self.learning_system:
+            return
+            
+        # Extract problem patterns
+        common_issues = []
+        
+        for phase_results in review.phase_results.values():
+            for result in phase_results:
+                if result.score < 6.0:
+                    common_issues.extend(result.specific_issues)
+        
+        # Find the most common issues
+        from collections import Counter
+        issue_frequency = Counter(common_issues)
+        top_issues = [issue for issue, count in issue_frequency.most_common(5)]
+        
+        # Learn to watch for these patterns
+        await self.learning_system.record_failure_pattern(
+            design_type=design_type,
+            common_issues=top_issues,
+            score=review.overall_score,
+            context=context or {}
+        )
+
+    async def _learn_from_agent_disagreement(self, review: OrchestratedReview):
+        """Learn from cases where agents disagree significantly."""
+        if not self.learning_system:
+            return
+            
+        # Find areas of disagreement
+        all_results = []
+        for results in review.phase_results.values():
+            all_results.extend(results)
+        
+        if len(all_results) < 2:
+            return
+            
+        # Group by agent type and compare
+        agent_scores = {}
+        agent_issues = {}
+        
+        for result in all_results:
+            agent_scores[result.agent_type] = result.score
+            agent_issues[result.agent_type] = result.specific_issues
+        
+        # Find disagreement patterns
+        score_variance = np.var(list(agent_scores.values()))
+        
+        if score_variance > 4.0:  # High disagreement
+            # Learn about what causes disagreement
+            await self.learning_system.record_disagreement_pattern(
+                agent_scores=agent_scores,
+                agent_issues=agent_issues,
+                variance=score_variance,
+                review_context={"design_type": review.design_type}
+            )
+
+    async def _learn_from_user_context(self, user_question: str, review: OrchestratedReview):
+        """Learn from what users ask about in relation to reviews."""
+        if not self.learning_system:
+            return
+            
+        question_category = self._categorize_question(user_question)
+        
+        # Learn about user intent vs. review outcomes
+        await self.learning_system.correlate_user_intent_with_outcomes(
+            question=user_question,
+            category=question_category,
+            review_score=review.overall_score,
+            agent_findings=self._extract_key_findings(review)
+        )
+
+    def _extract_key_findings(self, review: OrchestratedReview) -> Dict[str, List[str]]:
+        """Extract key findings from a review for learning purposes."""
+        findings = {
+            'strengths': [],
+            'issues': [],
+            'recommendations': []
+        }
+        
+        for phase_results in review.phase_results.values():
+            for result in phase_results:
+                # Extract positive findings
+                positive_feedback = [
+                    item for item in result.recommendations 
+                    if any(positive in item.lower() for positive in ['good', 'strong', 'effective', 'excellent'])
+                ]
+                findings['strengths'].extend(positive_feedback[:2])  # Top 2
+                
+                # Extract issues
+                findings['issues'].extend(result.specific_issues[:2])  # Top 2
+                
+                # Extract actionable recommendations
+                actionable_recs = [
+                    item for item in result.recommendations 
+                    if any(action in item.lower() for action in ['should', 'consider', 'improve', 'add', 'remove'])
+                ]
+                findings['recommendations'].extend(actionable_recs[:2])  # Top 2
+        
+        return findings
     
     async def _apply_learning_enhancements(self, design_type: str):
         """Apply learning-based enhancements to agents."""
@@ -510,6 +861,56 @@ class EnhancedDesignReviewSystem:
             self.orchestrator.config["confidence_threshold"] = new_config["confidence_threshold"]
 
 
+def create_enhanced_design_review_system(
+    openai_api_key: str,
+    exa_api_key: Optional[str] = None,
+    learning_enabled: bool = True,
+    company_context: Dict[str, Any] = None,
+    jira_config: Optional[Dict[str, str]] = None,
+    playwright_config: Optional[Dict[str, Any]] = None
+) -> 'EnhancedDesignReviewSystem':
+    """
+    Factory function to create an enhanced design review system with workflow orchestrator.
+    
+    This function handles the circular import issue by creating the enhanced system first,
+    then creating the workflow orchestrator with the enhanced system as a dependency.
+    
+    Args:
+        openai_api_key: OpenAI API key
+        exa_api_key: Optional Exa API key for research
+        learning_enabled: Whether to enable learning capabilities
+        company_context: Optional company context for customization
+        jira_config: Optional JIRA configuration for issue tracking
+        playwright_config: Optional Playwright configuration for testing
+        
+    Returns:
+        Fully configured EnhancedDesignReviewSystem with workflow orchestrator
+    """
+    # Create the enhanced system first
+    system = EnhancedDesignReviewSystem(
+        openai_api_key=openai_api_key,
+        exa_api_key=exa_api_key,
+        learning_enabled=learning_enabled,
+        company_context=company_context
+    )
+    
+    # Import and create workflow orchestrator here to avoid circular import
+    try:
+        from agents.workflow_orchestrator import WorkflowOrchestrator
+        workflow_orchestrator = WorkflowOrchestrator(
+            enhanced_system=system,
+            exa_api_key=exa_api_key,
+            jira_config=jira_config,
+            playwright_config=playwright_config
+        )
+        system.set_workflow_orchestrator(workflow_orchestrator)
+        print("🔄 Workflow orchestrator initialized and connected")
+    except ImportError as e:
+        print(f"Warning: Could not initialize workflow orchestrator: {e}")
+    
+    return system
+
+
 # Example usage and demo
 async def demo_enhanced_system():
     """Demo the enhanced design review system."""
@@ -522,8 +923,8 @@ async def demo_enhanced_system():
         print("❌ OPENAI_API_KEY required")
         return
     
-    # Create enhanced system
-    system = EnhancedDesignReviewSystem(
+    # Create enhanced system using the factory function
+    system = create_enhanced_design_review_system(
         openai_api_key=openai_key,
         exa_api_key=exa_key,
         learning_enabled=True

@@ -21,13 +21,15 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple, Union
+from typing import Dict, List, Any, Optional, Tuple, Union, TYPE_CHECKING
 from dataclasses import dataclass, asdict
 from enum import Enum
 import uuid
 
-from agents.enhanced_system import EnhancedDesignReviewSystem
 from agents.exa_search import ExaSearchAgent
+
+if TYPE_CHECKING:
+    from agents.enhanced_system import EnhancedDesignReviewSystem
 
 
 class WorkflowType(Enum):
@@ -131,7 +133,7 @@ class WorkflowOrchestrator:
     """
     
     def __init__(self, 
-                 openai_api_key: str,
+                 enhanced_system: 'EnhancedDesignReviewSystem',
                  exa_api_key: Optional[str] = None,
                  jira_config: Optional[Dict[str, str]] = None,
                  playwright_config: Optional[Dict[str, Any]] = None):
@@ -139,16 +141,12 @@ class WorkflowOrchestrator:
         Initialize the workflow orchestrator.
         
         Args:
-            openai_api_key: OpenAI API key
+            enhanced_system: The enhanced design review system to orchestrate
             exa_api_key: Exa API key for research
             jira_config: JIRA integration configuration
             playwright_config: Playwright testing configuration
         """
-        self.enhanced_system = EnhancedDesignReviewSystem(
-            openai_api_key=openai_api_key,
-            exa_api_key=exa_api_key,
-            learning_enabled=True
-        )
+        self.enhanced_system = enhanced_system
         
         self.jira_config = jira_config
         self.playwright_config = playwright_config

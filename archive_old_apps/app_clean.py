@@ -17,9 +17,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from dotenv import load_dotenv
-from agents.enhanced_system import create_enhanced_design_review_system
+from agents.enhanced_system import EnhancedDesignReviewSystem
 from agents.document_loaders import document_loader_manager
-from agents.workflow_orchestrator import KnowledgeGap, Priority
 
 # Load environment variables
 load_dotenv()
@@ -32,19 +31,12 @@ class CleanDesignChat:
         
         # Initialize enhanced system if API key is available
         self.enhanced_system = None
-        self.workflow_orchestrator = None
-        
         if self.openai_api_key:
             try:
-                # Use the factory function to create the system with workflow orchestrator
-                self.enhanced_system = create_enhanced_design_review_system(
+                self.enhanced_system = EnhancedDesignReviewSystem(
                     openai_api_key=self.openai_api_key,
                     learning_enabled=True
                 )
-                
-                # The workflow orchestrator is now part of the enhanced system
-                self.workflow_orchestrator = self.enhanced_system.workflow_orchestrator
-                
             except Exception as e:
                 st.error(f"System initialization failed: {e}")
     
@@ -274,25 +266,11 @@ I had trouble extracting design data from that Figma link: {str(e)}
                     "priority_focus": self._detect_review_focus(user_request)
                 }
                 
-                # **REAL SYSTEM CALL for images - using enhanced integration**
-                async def run_enhanced_review():
-                    user_id = f"user_{id(st.session_state)}"
-                    return await self.enhanced_system.enhanced_review_with_knowledge_integration(
-                        image_data=design_data,
-                        design_type="ui_screen",
-                        user_question=user_request,
-                        user_id=user_id
-                    )
-                
-                # Run the async review
-                import asyncio
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                try:
-                    review_results = loop.run_until_complete(run_enhanced_review())
-                finally:
-                    loop.close()
+                # **REAL SYSTEM CALL for images**
+                review_results = self.enhanced_system.conduct_comprehensive_review(
+                    design_image_base64=design_data,
+                    context=context
+                )
             
             # Format results naturally
             response = self._format_natural_review(review_results, user_request)
@@ -397,11 +375,11 @@ I can offer much better insights when I can see what you're working on. In the m
         })
     
     def _handle_brand_question_with_agents(self, user_input: str):
-        """Use the enhanced system's integrated knowledge handling."""
+        """Use the enhanced agent system to answer brand questions."""
         if not self.enhanced_system:
             st.session_state.chat_history.append({
                 "role": "assistant",
-                "content": "I need the OpenAI API key to access our knowledge system. Please check your configuration.",
+                "content": "I need the OpenAI API key to access our brand knowledge. Please check your configuration.",
                 "avatar": "⚠️"
             })
             return
@@ -409,116 +387,76 @@ I can offer much better insights when I can see what you're working on. In the m
         # Show thinking message
         st.session_state.chat_history.append({
             "role": "assistant",
-            "content": "🤔 Checking our knowledge base...",
+            "content": "🤔 Consulting our brand specialists...",
             "avatar": "🎨"
         })
         
         try:
-            # Use the enhanced system's integrated knowledge handling
-            import asyncio
+            # Use the enhanced system to handle brand questions
+            from openai import OpenAI
+            client = OpenAI(api_key=self.openai_api_key)
             
-            async def get_knowledge_response():
-                user_id = f"user_{id(st.session_state)}"
-                result = await self.enhanced_system.handle_knowledge_question(user_input, user_id)
-                return result
+            brand_context = """
+            You are Roku's brand specialist. Here's what you know about Roku's brand:
             
-            # Run the async knowledge check
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            BRAND COLORS:
+            - Primary: Roku Purple #662D91 (used for key UI elements, CTAs, brand moments)
+            - Secondary: Dark Purple #4A1F6B, Light Purple #8A4BC4
+            - Neutrals: Roku Black #0F0F0F, Dark Gray #2A2A2A, Medium Gray #6A6A6A, Light Gray #B8B8B8, Roku White #FFFFFF
+            - Accent: Success Green #00C851, Warning Yellow #FFB300, Error Red #FF4444
             
-            try:
-                knowledge_result = loop.run_until_complete(get_knowledge_response())
-            finally:
-                loop.close()
+            TYPOGRAPHY:
+            - Primary Font: Roku Sans
+            - Headings: Roku Sans Bold
+            - Body Text: Roku Sans Regular
+            - Fallbacks: Helvetica Neue, Arial, sans-serif
             
-            # Replace thinking message with result
+            Answer the user's brand question directly and specifically.
+            """
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": brand_context},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=500
+            )
+            
+            answer = response.choices[0].message.content
+            
+            # Replace thinking message with answer
             st.session_state.chat_history.pop()
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": f"🔵 **Roku Brand Information**\n\n{answer}",
+                "avatar": "🔵"
+            })
             
-            if knowledge_result:
-                # We found the knowledge
-                st.session_state.chat_history.append({
-                    "role": "assistant",
-                    "content": f"🔵 **From Knowledge Base**\n\n{knowledge_result}",
-                    "avatar": "🔵"
-                })
-            else:
-                # Knowledge gap - notify admin and provide helpful response
-                st.session_state.chat_history.append({
-                    "role": "assistant",
-                    "content": f"""
-🤔 **Knowledge Gap Detected**
-
-I don't have that information in our knowledge base yet, but I've logged this for our admin team.
-
-**📋 Logged for Admin Review:**
-- Question: "{user_input}"
-- Topic: Brand Guidelines  
-- Priority: Medium
-- Suggested Action: Add brand information to knowledge base
-
-**For now:** You can check our brand documentation or ask about design reviews with uploaded files.
-
-*This knowledge gap will be reviewed and the information will be added to help future questions.*
-                    """,
-                    "avatar": "📋"
-                })
+            # Log this as successful knowledge retrieval to the learning system
+            if self.enhanced_system.learning_system:
+                self.enhanced_system.learning_system.log_knowledge_success(user_input, "brand_guidelines")
                 
         except Exception as e:
             # Replace thinking message with error
             st.session_state.chat_history.pop()
             st.session_state.chat_history.append({
                 "role": "assistant",
-                "content": f"I had trouble accessing our knowledge system: {str(e)}",
+                "content": f"I had trouble accessing brand information: {str(e)}",
                 "avatar": "⚠️"
             })
     
     def _handle_knowledge_with_learning_system(self, user_input: str) -> str:
-        """Use the workflow orchestrator to handle knowledge gaps properly."""
+        """Use the learning system to handle potential knowledge gaps."""
         
-        if self.workflow_orchestrator:
-            try:
-                # Create proper knowledge gap using your existing system
-                import asyncio
-                
-                async def log_gap():
-                    gap = KnowledgeGap(
-                        gap_id=f"gap_{datetime.now().timestamp()}",
-                        agent_name="chat_interface", 
-                        topic="general_knowledge",
-                        question=user_input,
-                        context={"source": "chat", "session": id(st.session_state)},
-                        severity=Priority.LOW,
-                        timestamp=datetime.now(),
-                        suggested_next_steps=[
-                            "Admin should review and add to knowledge base",
-                            "Determine if this should be answered by agents",
-                            "Update system knowledge for future queries"
-                        ]
-                    )
-                    
-                    workflow_id = f"knowledge_gap_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                    await self.workflow_orchestrator._log_knowledge_gap(gap, workflow_id)
-                
-                # Log the gap
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    loop.run_until_complete(log_gap())
-                finally:
-                    loop.close()
-                    
-            except Exception as e:
-                print(f"Error logging knowledge gap: {e}")
+        if self.enhanced_system and self.enhanced_system.learning_system:
+            # Log this as a knowledge gap for the learning system to track
+            self.enhanced_system.learning_system.log_knowledge_gap(user_input)
         
         return f"""
-🤔 That's an interesting question about our team/company knowledge.
+🤔 That sounds like an important question about our team/company knowledge.
 
-I don't have that specific information yet, but I've logged this as a knowledge gap in our system.
-
-**📋 Logged for Admin Review:**
-- Question: "{user_input}"
-- System: Workflow Orchestrator
-- Action: Knowledge gap detected and logged
+I don't have that specific information yet, but our learning system has logged this as a knowledge gap.
 
 **Our agents will learn this over time** - ask me again later or provide context so I can learn!
 
