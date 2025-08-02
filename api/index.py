@@ -12,7 +12,7 @@ class handler(BaseHTTPRequestHandler):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎨 Margo Design Review Agent</title>
+    <title>🎨 VP of Design Agent System</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -114,16 +114,16 @@ class handler(BaseHTTPRequestHandler):
 </head>
 <body>
     <div class="container">
-        <h1>🎨 Margo Design Review Agent</h1>
-        <p class="subtitle">Intelligent AI-powered design analysis with multi-agent collaboration</p>
+        <h1>🎨 VP of Design Agent System</h1>
+        <p class="subtitle">Sophisticated multi-agent design workflow automation powered by AI</p>
         
         <div class="chat-container">
             <div class="chat-area">
                 <div class="messages" id="messages">
-                    <p><strong>Margo AI:</strong> Hello! I'm your intelligent design review agent system. Upload a design file and tell me what you'd like me to analyze, or just start chatting about design principles!</p>
+                    <p><strong>VP Design System:</strong> Hello! I'm your sophisticated multi-agent design review system. Margo (VP of Design) leads our specialized agents for comprehensive design analysis. Upload a design file and tell me what you'd like us to review, or start chatting about design principles!</p>
                 </div>
                 <div class="input-area">
-                    <input type="text" class="message-input" id="messageInput" placeholder="Ask about your design or request an analysis...">
+                    <input type="text" class="message-input" id="messageInput" placeholder="Describe what you'd like our design team to review...">
                     <button class="send-btn" onclick="sendMessage()">Send</button>
                 </div>
             </div>
