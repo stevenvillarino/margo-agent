@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 Margo Design Review Agent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #663399;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        .chat-container {
+            display: flex;
+            gap: 20px;
+            height: 600px;
+        }
+        .chat-area {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+        }
+        .upload-area {
+            flex: 1;
+            border: 2px dashed #663399;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9ff;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+        .message.user {
+            background: #663399;
+            color: white;
+            margin-left: auto;
+        }
+        .message.assistant {
+            background: #e9ecef;
+            color: #333;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        .message-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #663399;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+        }
+        .send-btn {
+            background: #663399;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .send-btn:hover {
+            background: #552288;
+        }
+        .upload-input {
+            margin: 20px 0;
+        }
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 5px;
+            color: #155724;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #663399;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Margo Design Review Agent</h1>
+        <p class="subtitle">Intelligent AI-powered design analysis with multi-agent collaboration</p>
+        
+        <div class="chat-container">
+            <div class="chat-area">
+                <div class="messages" id="messages">
+                    <div class="message assistant">
+                        <strong>Margo AI:</strong> Hello! I'm your intelligent design review agent. Upload a design file and tell me what you'd like me to analyze, or just start chatting!
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <input type="text" class="message-input" id="messageInput" 
+                           placeholder="Describe what you'd like me to review, or just say hello!">
+                    <button class="send-btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+            
+            <div class="upload-area">
+                <h3>📁 Upload Design</h3>
+                <input type="file" id="fileInput" class="upload-input" 
+                       accept="image/*,.pdf" onchange="handleFileSelect()">
+                <div id="fileInfo" class="file-info" style="display: none;"></div>
+                <p>Drag & drop or click to upload<br>
+                <small>Supports: PNG, JPG, JPEG, PDF</small></p>
+            </div>
+        </div>
+        
+        <div id="status" class="status"></div>
+        <div id="loading" class="loading">🤖 AI agents are analyzing...</div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+        
+        function addMessage(content, isUser = false) {
+            const messages = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            messageDiv.innerHTML = isUser ? `<strong>You:</strong> ${content}` : `<strong>Margo AI:</strong> ${content}`;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        function showLoading(show = true) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            addMessage(message, true);
+            input.value = '';
+            showLoading(true);
+            
+            try {
+                let response;
+                
+                if (uploadedFile) {
+                    // Send file + message
+                    const formData = new FormData();
+                    formData.append('file', uploadedFile);
+                    formData.append('message', message);
+                    
+                    response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    // Send just message
+                    response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message })
+                    });
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    addMessage(`❌ Error: ${data.error}`);
+                    showStatus(data.error, 'error');
+                } else {
+                    addMessage(data.response);
+                    if (uploadedFile) {
+                        showStatus(`✅ Analyzed ${uploadedFile.name} successfully!`);
+                        uploadedFile = null;
+                        document.getElementById('fileInfo').style.display = 'none';
+                    }
+                }
+                
+            } catch (error) {
+                addMessage(`❌ Connection error: ${error.message}`);
+                showStatus('Connection error. Please try again.', 'error');
+            }
+            
+            showLoading(false);
+        }
+        
+        function handleFileSelect() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                uploadedFile = file;
+                const fileInfo = document.getElementById('fileInfo');
+                fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileInfo.style.display = 'block';
+                showStatus(`📁 File "${file.name}" ready for analysis!`);
+            }
+        }
+        
+        // Enter key to send message
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Initialize
+        showStatus('🎨 Margo Design Review Agent ready!');
+    </script>
+</body>
+</html>

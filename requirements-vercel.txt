@@ -1,13 +1,11 @@
-# Minimal dependencies for Vercel deployment
+# Flask and core dependencies for Vercel deployment
 flask>=2.3.0
+langchain>=0.1.0
+langchain-openai>=0.1.0
+langchain-community>=0.0.20
+exa-py>=1.0.0
 python-dotenv>=1.0.0
 pillow>=10.0.0
 requests>=2.31.0
 pydantic>=2.0.0
-
-# Core AI dependencies
 openai>=1.0.0
-anthropic>=0.25.0
-
-# Lightweight alternatives
-httpx>=0.25.0
