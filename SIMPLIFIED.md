@@ -12,7 +12,25 @@
 ## How to run
 
 ```bash
-# Local development
+# Local development (full Streamlit app)
+source venv/bin/activate
+streamlit run app.py
+```
+
+**Production**: Auto-deployed to Vercel with identical functionality in HTML/JS
+
+## The Delta Fix
+
+**Problem**: Streamlit can't run on serverless platforms like Vercel
+
+**Solution**:
+
+- **Local**: Full Streamlit app (`app.py`)
+- **Production**: HTML/JS version (`api/index.py`) with identical chat logic
+
+Both have the same features and responses - just different tech stacks!
+
+```bash
 source venv/bin/activate
 streamlit run app.py
 ```
