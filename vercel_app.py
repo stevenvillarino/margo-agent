@@ -10,12 +10,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template, request, jsonify
 
+# Initialize Flask app
 app = Flask(__name__)
 
 @app.route('/')
 def index():
     """Serve the main application interface"""
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        return f"Template error: {str(e)} - Working directory: {os.getcwd()}"
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -75,6 +79,7 @@ def health():
         'timestamp': datetime.now().isoformat()
     })
 
+# For Vercel, the app object is what gets called
 if __name__ == '__main__':
     app.run(debug=True)
 
