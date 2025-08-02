@@ -17,7 +17,10 @@
   },
   "functions": {
     "vercel_app.py": {
-      "includeFiles": "templates/**"
+      "includeFiles": "templates/**",
+      "maxDuration": 30,
+      "memory": 512
     }
-  }
+  },
+  "buildCommand": "echo 'Using vercel_app.py as main entry point'"
 }
