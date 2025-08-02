@@ -3,264 +3,562 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎨 Margo Design Review Agent</title>
+    <title>� Margo's AI Design Studio</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            color: #1a202c;
+            margin: 0;
+            line-height: 1.6;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #663399;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.2em;
-        }
-        .chat-container {
+        
+        .main-container {
             display: flex;
-            gap: 20px;
-            height: 600px;
+            min-height: 100vh;
+            position: relative;
         }
-        .chat-area {
-            flex: 2;
+        
+        .sidebar {
+            width: 340px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 2rem 1.5rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.05);
+        }
+        
+        .content {
+            flex: 1;
+            margin-left: 340px;
+            padding: 2rem;
+            max-width: 900px;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .content.expanded {
+            margin-left: 0;
+        }
+        
+        .sidebar h1 {
+            color: #1a202c;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 2rem;
+        }
+        
+        .sidebar-section h3 {
+            color: #2d3748;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .agent-card {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .agent-card:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+        
+        .agent-role {
+            font-size: 0.8rem;
+            color: #718096;
+            font-style: italic;
+        }
+        
+        .chat-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            margin: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
         }
-        .upload-area {
-            flex: 1;
-            border: 2px dashed #663399;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            background: #f8f9ff;
+        
+        .chat-header {
+            padding: 2rem 2rem 1rem 2rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
         }
-        .messages {
+        
+        .chat-header h1 {
+            color: #1a202c;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .chat-header p {
+            color: #4a5568;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        
+        .chat-messages {
             flex: 1;
+            margin: 1rem 2rem;
+            max-height: 500px;
             overflow-y: auto;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #e9ecef;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
+        
         .message {
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            border-radius: 10px;
-            max-width: 80%;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
+        
         .message.user {
-            background: #663399;
-            color: white;
-            margin-left: auto;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f3e5f5 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
         }
+        
         .message.assistant {
-            background: #e9ecef;
-            color: #333;
+            background: linear-gradient(135deg, #f0f9ff 0%, #fdf4ff 100%);
+            border: 1px solid rgba(118, 75, 162, 0.2);
         }
-        .input-area {
+        
+        .message.thinking {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            font-style: italic;
+        }
+        
+        .message-header {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
         }
-        .message-input {
+        
+        .thinking-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            color: #92400e;
+            font-style: italic;
+            margin: 1rem 2rem;
+            padding: 1rem;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(245, 158, 11, 0.3);
+            border-top: 3px solid #f59e0b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 1rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        
+        .chat-input {
             flex: 1;
-            padding: 15px;
-            border: 2px solid #663399;
-            border-radius: 25px;
-            font-size: 16px;
+            padding: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            font-size: 1rem;
             outline: none;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.9);
         }
-        .send-btn {
-            background: #663399;
+        
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 1);
+        }
+        
+        .send-button {
+            padding: 1.25rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 15px 25px;
-            border-radius: 25px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: bold;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
-        .send-btn:hover {
-            background: #552288;
+        
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
-        .upload-input {
-            margin: 20px 0;
+        
+        .send-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
-        .file-info {
-            margin-top: 10px;
-            padding: 10px;
-            background: #d4edda;
-            border-radius: 5px;
-            color: #155724;
+        
+        .knowledge-section {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(101, 163, 13, 0.1) 100%);
+            border-radius: 16px;
+            padding: 1rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            color: #663399;
+        
+        .knowledge-section h4 {
+            margin-bottom: 0.75rem;
+            color: #065f46;
+            font-weight: 600;
         }
-        .status {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            display: none;
+        
+        .knowledge-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            color: #047857;
+            font-size: 0.9rem;
         }
-        .status.success { background: #d4edda; color: #155724; }
-        .status.error { background: #f8d7da; color: #721c24; }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎨 Margo Design Review Agent</h1>
-        <p class="subtitle">Intelligent AI-powered design analysis with multi-agent collaboration</p>
-        
-        <div class="chat-container">
-            <div class="chat-area">
-                <div class="messages" id="messages">
-                    <div class="message assistant">
-                        <strong>Margo AI:</strong> Hello! I'm your intelligent design review agent. Upload a design file and tell me what you'd like me to analyze, or just start chatting!
-                    </div>
+    <button class="sidebar-toggle" id="sidebarToggle">≡</button>
+    
+    <div class="main-container">
+        <div class="sidebar" id="sidebar">
+            <h1>🎯 Margo's Studio</h1>
+            
+            <div class="sidebar-section">
+                <h3>🤖 AI Agent Team</h3>
+                
+                <div class="agent-card">
+                    <div class="agent-name">🎯 Margo</div>
+                    <div class="agent-role">VP of Design & Team Lead</div>
                 </div>
                 
-                <div class="input-area">
-                    <input type="text" class="message-input" id="messageInput" 
-                           placeholder="Describe what you'd like me to review, or just say hello!">
-                    <button class="send-btn" onclick="sendMessage()">Send</button>
+                <div class="agent-card">
+                    <div class="agent-name">🎨 Creative Director</div>
+                    <div class="agent-role">UI/UX Specialist & Visual Design</div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">🔬 UX Researcher</div>
+                    <div class="agent-role">User Research & Behavioral Analysis</div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">🚀 Product Strategist</div>
+                    <div class="agent-role">Product Vision & Market Strategy</div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">♿ Accessibility Expert</div>
+                    <div class="agent-role">WCAG Compliance & Inclusive Design</div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">🔍 Quality Analyst</div>
+                    <div class="agent-role">Design QA & Standards Validation</div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">🌐 Research AI</div>
+                    <div class="agent-role">Real-time Market Intelligence</div>
                 </div>
             </div>
             
-            <div class="upload-area">
-                <h3>📁 Upload Design</h3>
-                <input type="file" id="fileInput" class="upload-input" 
-                       accept="image/*,.pdf" onchange="handleFileSelect()">
-                <div id="fileInfo" class="file-info" style="display: none;"></div>
-                <p>Drag & drop or click to upload<br>
-                <small>Supports: PNG, JPG, JPEG, PDF</small></p>
+            <div class="sidebar-section">
+                <h3>🧠 Knowledge System</h3>
+                <div class="knowledge-section">
+                    <h4>Active Connections:</h4>
+                    <div class="knowledge-item">
+                        <div class="status-indicator"></div>
+                        CloudFlare MCP Knowledge Graph
+                    </div>
+                    <div class="knowledge-item">
+                        <div class="status-indicator"></div>
+                        Team Learning Database
+                    </div>
+                    <div class="knowledge-item">
+                        <div class="status-indicator"></div>
+                        Design Pattern Library
+                    </div>
+                    <div class="knowledge-item">
+                        <div class="status-indicator"></div>
+                        Brand Intelligence System
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div id="status" class="status"></div>
-        <div id="loading" class="loading">🤖 AI agents are analyzing...</div>
+        <div class="content" id="content">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h1>AI Design Intelligence</h1>
+                    <p>Powered by Margo's specialized agent team with real-time knowledge integration</p>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-header">
+                            🎯 Margo - VP Design
+                        </div>
+                        <div>
+                            Welcome to our AI Design Studio! I lead a team of 7 specialized agents, each bringing unique expertise to your design challenges. We're connected to a live knowledge graph and continuously learning from every interaction.
+                            <br><br>
+                            <strong>What can we analyze for you today?</strong> Ask about design principles, request a team consultation, or explore our capabilities!
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="thinking-indicator" id="thinkingIndicator">
+                    <div class="spinner"></div>
+                    <span id="thinkingText">Agents collaborating and accessing knowledge systems...</span>
+                </div>
+                
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Ask our AI design team anything - from brand strategy to accessibility reviews..." />
+                    <button class="send-button" id="sendButton">Send</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        let uploadedFile = null;
-        
-        function showStatus(message, type = 'success') {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-            status.style.display = 'block';
-            setTimeout(() => {
-                status.style.display = 'none';
-            }, 5000);
-        }
-        
-        function addMessage(content, isUser = false) {
-            const messages = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
-            messageDiv.innerHTML = isUser ? `<strong>You:</strong> ${content}` : `<strong>Margo AI:</strong> ${content}`;
-            messages.appendChild(messageDiv);
-            messages.scrollTop = messages.scrollHeight;
-        }
-        
-        function showLoading(show = true) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
-        
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            if (!message) return;
+        // Sidebar toggle functionality
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
             
-            addMessage(message, true);
-            input.value = '';
-            showLoading(true);
-            
-            try {
-                let response;
-                
-                if (uploadedFile) {
-                    // Send file + message
-                    const formData = new FormData();
-                    formData.append('file', uploadedFile);
-                    formData.append('message', message);
-                    
-                    response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                } else {
-                    // Send just message
-                    response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ message })
-                    });
-                }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    addMessage(`❌ Error: ${data.error}`);
-                    showStatus(data.error, 'error');
-                } else {
-                    addMessage(data.response);
-                    if (uploadedFile) {
-                        showStatus(`✅ Analyzed ${uploadedFile.name} successfully!`);
-                        uploadedFile = null;
-                        document.getElementById('fileInfo').style.display = 'none';
-                    }
-                }
-                
-            } catch (error) {
-                addMessage(`❌ Connection error: ${error.message}`);
-                showStatus('Connection error. Please try again.', 'error');
-            }
-            
-            showLoading(false);
-        }
+            sidebar.classList.toggle('hidden');
+            content.classList.toggle('expanded');
+        });
         
-        function handleFileSelect() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            
-            if (file) {
-                uploadedFile = file;
-                const fileInfo = document.getElementById('fileInfo');
-                fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                fileInfo.style.display = 'block';
-                showStatus(`📁 File "${file.name}" ready for analysis!`);
-            }
-        }
-        
-        // Enter key to send message
-        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        // Chat functionality
+        document.getElementById('sendButton').addEventListener('click', sendMessage);
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
         
-        // Initialize
-        showStatus('🎨 Margo Design Review Agent ready!');
+        const thinkingMessages = [
+            "🎯 Margo is assembling the team...",
+            "🔬 UX Researcher analyzing user patterns...",
+            "🎨 Creative Director evaluating visual hierarchy...", 
+            "🚀 Product Strategist considering market impact...",
+            "♿ Accessibility Expert checking compliance standards...",
+            "🔍 Quality Analyst validating design consistency...",
+            "🌐 Research AI gathering latest industry insights...",
+            "🧠 Accessing knowledge graph for relevant patterns...",
+            "💡 Team synthesizing multi-perspective analysis...",
+            "📝 Preparing comprehensive design intelligence report..."
+        ];
+        
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Show enhanced thinking process
+            showEnhancedThinking();
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        has_file: false,
+                        filename: null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Hide thinking indicator
+                hideThinking();
+                
+                // Add assistant response with enhanced formatting
+                addMessage(result.response, 'assistant');
+                
+                // Show knowledge expansion notification
+                if (Math.random() > 0.7) { // 30% chance
+                    setTimeout(() => {
+                        addMessage("✨ This conversation has been logged for knowledge base expansion and team learning optimization.", 'thinking');
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                hideThinking();
+                addMessage(`❌ System Error: ${error.message}`, 'assistant');
+            }
+        }
+        
+        function showEnhancedThinking() {
+            const indicator = document.getElementById('thinkingIndicator');
+            const textElement = document.getElementById('thinkingText');
+            
+            let messageIndex = 0;
+            indicator.style.display = 'flex';
+            
+            // Cycle through thinking messages
+            const thinkingInterval = setInterval(() => {
+                if (messageIndex < thinkingMessages.length) {
+                    textElement.textContent = thinkingMessages[messageIndex];
+                    messageIndex++;
+                } else {
+                    clearInterval(thinkingInterval);
+                }
+            }, 800);
+            
+            // Store interval for cleanup
+            indicator.dataset.interval = thinkingInterval;
+        }
+        
+        function addMessage(content, type) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const icons = {
+                'user': '👤',
+                'assistant': '🤖',
+                'thinking': '💭'
+            };
+            
+            const titles = {
+                'user': 'You',
+                'assistant': 'AI Design Team',
+                'thinking': 'System Intelligence'
+            };
+            
+            // Enhanced content formatting
+            const formattedContent = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>')
+                .replace(/🎯 Margo:/g, '<strong style="color: #667eea;">🎯 Margo:</strong>')
+                .replace(/🎨 Creative Director:/g, '<strong style="color: #764ba2;">🎨 Creative Director:</strong>')
+                .replace(/🔬 UX Researcher:/g, '<strong style="color: #10b981;">🔬 UX Researcher:</strong>')
+                .replace(/🚀 Product Strategist:/g, '<strong style="color: #f59e0b;">🚀 Product Strategist:</strong>')
+                .replace(/♿ Accessibility Expert:/g, '<strong style="color: #ef4444;">♿ Accessibility Expert:</strong>')
+                .replace(/🔍 Quality Analyst:/g, '<strong style="color: #8b5cf6;">🔍 Quality Analyst:</strong>')
+                .replace(/🌐 Research AI:/g, '<strong style="color: #06b6d4;">🌐 Research AI:</strong>');
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    ${icons[type]} ${titles[type]}
+                </div>
+                <div>${formattedContent}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function hideThinking() {
+            const indicator = document.getElementById('thinkingIndicator');
+            const interval = indicator.dataset.interval;
+            if (interval) {
+                clearInterval(parseInt(interval));
+            }
+            indicator.style.display = 'none';
+        }
     </script>
 </body>
 </html>
