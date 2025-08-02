@@ -1,6 +1,21 @@
-# 🎭 Margo Agent - Advanced Design Workflow Automation
+# 🎭 Margo Agent - VP of Design Automation System
 
-A sophisticated multi-agent system for design workflow automation where **Margo (VP of Design)** serves as the senior "tollgate" for strategic design decisions, supported by specialized agents handling different aspects of the design process.
+> **A sophisticated multi-agent system for design workflow automation where Margo (VP of Design) serves as the senior "tollgate" for strategic design decisions, supported by specialized agents handling different aspects of the design process.**
+
+## 📚 Documentation
+
+**Complete documentation is now organized in the [`docs/`](docs/) directory:**
+
+- **[🚀 Quick Start Guide](docs/QUICK_START.md)** - Get running in 30 minutes
+- **[📖 Project Overview](docs/PROJECT_OVERVIEW.md)** - Architecture and features
+- **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[⚙️ Configuration](docs/CONFIGURATION.md)** - Environment setup and settings
+- **[🔧 Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+### Specialized Documentation
+- **[🏗️ Agent Architecture](docs/AGENT_ARCHITECTURE.md)** - Technical implementation details
+- **[📺 Roku Features](docs/ROKU_SPECIFIC.md)** - TV design guidelines and brand standards
+- **[📝 Changelog](docs/CHANGELOG.md)** - Version history and updates
 
 ## 🏗️ System Architecture
 
