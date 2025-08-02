@@ -32,12 +32,11 @@ class IntelligentDesignChat:
     """Intelligent chat interface that orchestrates multiple agents."""
     
     def __init__(self):
-        # Initialize the enhanced multi-agent system
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.enhanced_system = None
-        self.communication_hub = create_communication_hub()
-        
-        # Initialize session state
+        # Only initialize session state, not heavy objects
+        self._init_session_state()
+    
+    def _init_session_state(self):
+        """Initialize session state variables once."""
         if "chat_history" not in st.session_state:
             st.session_state.chat_history = []
         if "agent_activity" not in st.session_state:
@@ -46,15 +45,37 @@ class IntelligentDesignChat:
             st.session_state.current_analysis = None
         if "uploaded_images" not in st.session_state:
             st.session_state.uploaded_images = {}
+        if "system_initialized" not in st.session_state:
+            st.session_state.system_initialized = False
             
-        self._initialize_system()
+    @property
+    def openai_key(self):
+        """Get OpenAI key from environment."""
+        return os.getenv("OPENAI_API_KEY")
+    
+    @property  
+    def enhanced_system(self):
+        """Get or initialize enhanced system."""
+        if not st.session_state.system_initialized:
+            self._initialize_system()
+        return getattr(st.session_state, '_enhanced_system', None)
+    
+    @property
+    def communication_hub(self):
+        """Get or initialize communication hub.""" 
+        if not hasattr(st.session_state, '_communication_hub'):
+            st.session_state._communication_hub = create_communication_hub()
+        return st.session_state._communication_hub
     
     def _initialize_system(self):
-        """Initialize the enhanced multi-agent system."""
-        if self.openai_key and not self.enhanced_system:
+        """Initialize the enhanced multi-agent system once."""
+        if st.session_state.system_initialized:
+            return
+            
+        if self.openai_key:
             try:
                 exa_key = os.getenv("EXA_API_KEY")
-                self.enhanced_system = create_enhanced_design_review_system(
+                st.session_state._enhanced_system = create_enhanced_design_review_system(
                     openai_api_key=self.openai_key,
                     exa_api_key=exa_key,
                     learning_enabled=True,
@@ -68,12 +89,11 @@ class IntelligentDesignChat:
                 
                 # Register agents with communication hub
                 self._register_agents_with_hub()
+                st.session_state.system_initialized = True
                 
-                return True
             except Exception as e:
                 st.error(f"Failed to initialize system: {e}")
-                return False
-        return self.enhanced_system is not None
+                st.session_state.system_initialized = False
     
     def _register_agents_with_hub(self):
         """Register all agents with the communication hub for message tracking."""
@@ -140,14 +160,20 @@ class IntelligentDesignChat:
         st.title("🎨 Intelligent Design Review Assistant")
         st.markdown("*Upload a design and chat with our AI agents to get comprehensive feedback*")
         
-        # Create main layout
-        col1, col2 = st.columns([2, 1])
+        # Optional settings in sidebar
+        with st.sidebar:
+            st.markdown("### ⚙️ Settings")
+            if st.button("🤖 Toggle Agent Dashboard"):
+                st.session_state.show_agent_panel = not st.session_state.get("show_agent_panel", False)
+                st.rerun()
         
-        with col1:
-            self._render_chat_interface()
-            
-        with col2:
-            self._render_agent_activity_panel()
+        # Create main layout - full width for cleaner interface
+        self._render_chat_interface()
+        
+        # Optional agent activity panel (only show if user wants to see it)
+        if st.session_state.get("show_agent_panel", False):
+            with st.expander("🤖 Agent Activity Dashboard", expanded=False):
+                self._render_agent_activity_panel()
     
     def _render_chat_interface(self):
         """Render the main chat interface."""
@@ -528,142 +554,6 @@ Our specialist agents used the enhanced multi-agent system with real orchestrati
                 "research_conducted": bool(research_context),
                 "learning_insights_count": len(learning_insights),
                 "priority_actions_count": len(comprehensive_result.get('priority_actions', []))
-            }
-        }
-        """Simulate the enhanced multi-agent review process."""
-        
-        # For demo purposes, we'll simulate the multi-agent process
-        # In the real implementation, this would call the actual enhanced system
-        
-        review_type = context["review_type"]
-        primary_agents = context["primary_agents"]
-        
-        # Simulate agent coordination
-        agent_results = {}
-        agent_messages = []
-        
-        for i, agent_id in enumerate(primary_agents):
-            agent_name = self.communication_hub.agent_capabilities[agent_id].agent_name
-            
-            # Simulate agent thinking
-            st.session_state.agent_activity.append(f"🔍 {agent_name} analyzing design...")
-            
-            # Simulate agent-specific insights
-            if agent_id == "accessibility":
-                agent_results[agent_id] = {
-                    "score": 7.5,
-                    "insights": [
-                        "Good color contrast ratios detected",
-                        "Consider adding alt text for decorative elements", 
-                        "Touch targets appear to meet minimum size requirements"
-                    ],
-                    "recommendations": [
-                        "Add skip navigation links",
-                        "Ensure focus indicators are visible",
-                        "Test with screen readers"
-                    ]
-                }
-                agent_messages.append(f"🛡️ **{agent_name}**: Accessibility score 7.5/10 - good foundation with room for improvement")
-                
-            elif agent_id == "vp_product":
-                agent_results[agent_id] = {
-                    "score": 8.2,
-                    "insights": [
-                        "Strong alignment with business objectives",
-                        "Clear value proposition presented to users",
-                        "Potential for increased user engagement"
-                    ],
-                    "recommendations": [
-                        "Consider A/B testing key interaction points",
-                        "Add metrics tracking for conversion analysis",
-                        "Align with quarterly OKRs for engagement"
-                    ]
-                }
-                agent_messages.append(f"💼 **{agent_name}**: Business impact score 8.2/10 - solid strategic alignment")
-                
-            elif agent_id == "ux_researcher":
-                agent_results[agent_id] = {
-                    "score": 7.8,
-                    "insights": [
-                        "Intuitive navigation patterns",
-                        "Clear information hierarchy",
-                        "Some potential friction points identified"
-                    ],
-                    "recommendations": [
-                        "Conduct user testing on new interaction patterns",
-                        "Simplify the primary user flow",
-                        "Add contextual help for complex features"
-                    ]
-                }
-                agent_messages.append(f"🔬 **{agent_name}**: UX analysis complete - 7.8/10 with clear optimization paths")
-                
-            elif agent_id == "ui_specialist":
-                agent_results[agent_id] = {
-                    "score": 8.5,
-                    "insights": [
-                        "Strong visual hierarchy and typography",
-                        "Consistent design system usage",
-                        "Effective use of white space"
-                    ],
-                    "recommendations": [
-                        "Consider mobile responsiveness for smaller screens",
-                        "Enhance micro-interactions for delight",
-                        "Optimize loading states and transitions"
-                    ]
-                }
-                agent_messages.append(f"🎨 **{agent_name}**: Visual design assessment - 8.5/10, excellent execution")
-                
-            elif agent_id == "creative_director":
-                agent_results[agent_id] = {
-                    "score": 8.0,
-                    "insights": [
-                        "Consistent brand expression",
-                        "Creative solution fits target audience",
-                        "Strong emotional resonance potential"
-                    ],
-                    "recommendations": [
-                        "Amplify unique brand differentiators",
-                        "Consider seasonal creative variations",
-                        "Ensure scalability across product family"
-                    ]
-                }
-                agent_messages.append(f"✨ **{agent_name}**: Creative review done - 8.0/10, strong brand alignment")
-        
-        # Simulate agent collaboration and consensus
-        st.session_state.agent_activity.append("🤝 Agents collaborating on final recommendations...")
-        
-        # Calculate overall score
-        overall_score = sum(result["score"] for result in agent_results.values()) / len(agent_results)
-        
-        # Create consensus summary
-        summary = f"""## 🎯 {review_type.replace('_', ' ').title()} Review Complete
-
-**Overall Score: {overall_score:.1f}/10**
-
-{chr(10).join(agent_messages)}
-
-### 🔄 Agent Collaboration Summary
-Our {len(primary_agents)} specialist agents have analyzed your design and reached consensus on key areas for improvement. The analysis combined multiple perspectives to provide comprehensive feedback.
-
-### 🎯 Key Insights
-- **Strengths**: {self._extract_top_insights(agent_results, 'positive')}
-- **Opportunities**: {self._extract_top_insights(agent_results, 'improvement')}
-
-### 🚀 Next Steps
-Based on our multi-agent analysis, here are the prioritized recommendations:
-{self._generate_prioritized_recommendations(agent_results)}
-
-*Want to dive deeper into any specific area? Just ask!*
-"""
-
-        return {
-            "summary": summary,
-            "overall_score": overall_score,
-            "agent_details": {
-                "agents_involved": primary_agents,
-                "review_type": review_type,
-                "individual_results": agent_results,
-                "collaboration_notes": "Agents successfully coordinated and reached consensus"
             }
         }
     
