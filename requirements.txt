@@ -7,3 +7,22 @@ pillow
 pydantic
 pytest
 httpx
+
+# LangChain and AI dependencies
+langchain
+langchain-openai
+langchain-community
+openai
+
+# Slack Bot dependencies
+slack-bolt
+slack-sdk
+aiohttp
+websockets
+
+# Additional utilities
+exa-py
+requests
+beautifulsoup4
+matplotlib
+plotly

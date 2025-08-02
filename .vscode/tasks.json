@@ -24,6 +24,46 @@
 			"group": "build",
 			"isBackground": true,
 			"problemMatcher": []
+		},
+		{
+			"label": "Start Slack Bot",
+			"type": "shell",
+			"command": "source venv/bin/activate && python run_slack_bot.py",
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": [],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			}
+		},
+		{
+			"label": "Setup Slack Bot",
+			"type": "shell",
+			"command": "./scripts/setup_slack.sh",
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new"
+			}
+		},
+		{
+			"label": "Configure Slack Tokens",
+			"type": "shell",
+			"command": "./configure_slack.sh",
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new"
+			}
 		}
 	]
 }
